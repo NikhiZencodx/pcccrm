@@ -14,8 +14,7 @@ export default async function DashboardPage() {
     .eq('id', user.id)
     .single() as { data: { role: string } | null } : { data: null }
 
-  // Non-admin users get redirected to their module
-  if (profile?.role === 'telecaller') redirect('/leads')
+  // Non-admin users get redirected to their module (excluding telecallers who now have access)
   if (profile?.role === 'backend') redirect('/backend')
   if (profile?.role === 'finance') redirect('/finance')
 
@@ -25,6 +24,15 @@ export default async function DashboardPage() {
   const monthStart = format(startOfMonth(now), 'yyyy-MM-dd')
   const monthEnd = format(endOfMonth(now), 'yyyy-MM-dd')
   const todayDate = format(now, 'yyyy-MM-dd')
+
+  const applyScope = (q: any, table: string) => {
+    if (profile?.role === 'telecaller') {
+      if (table === 'leads') return q.eq('assigned_to', user!.id)
+      if (table === 'students') return q.eq('assigned_counsellor', user!.id)
+      if (table === 'payments') return q.eq('recorded_by', user!.id)
+    }
+    return q
+  }
 
   const [
     { count: totalLeads },
@@ -39,17 +47,17 @@ export default async function DashboardPage() {
     { data: followupLeads },
     { data: topConverters },
   ] = await Promise.all([
-    supabase.from('leads').select('*', { count: 'exact', head: true }),
-    supabase.from('leads').select('*', { count: 'exact', head: true }).gte('created_at', todayStart).lte('created_at', todayEnd),
-    supabase.from('leads').select('*', { count: 'exact', head: true }).eq('status', 'converted').gte('converted_at', monthStart).lte('converted_at', monthEnd),
-    supabase.from('leads').select('*', { count: 'exact', head: true }),
-    supabase.from('payments').select('amount').gte('payment_date', monthStart).lte('payment_date', monthEnd),
-    supabase.from('students').select('total_fee, amount_paid'),
-    supabase.from('students').select('*', { count: 'exact', head: true }),
-    supabase.from('student_documents').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-    supabase.from('leads').select('id, full_name, status, created_at, courses ( name )').order('created_at', { ascending: false }).limit(10),
-    supabase.from('leads').select('id, full_name, phone, assigned_to, profiles!assigned_to ( full_name )').eq('next_followup_date', todayDate),
-    supabase.from('leads').select('assigned_to, profiles!assigned_to ( id, full_name )').eq('status', 'converted').gte('converted_at', monthStart).lte('converted_at', monthEnd),
+    applyScope(supabase.from('leads').select('*', { count: 'exact', head: true }), 'leads'),
+    applyScope(supabase.from('leads').select('*', { count: 'exact', head: true }).gte('created_at', todayStart).lte('created_at', todayEnd), 'leads'),
+    applyScope(supabase.from('leads').select('*', { count: 'exact', head: true }).eq('status', 'converted').gte('converted_at', monthStart).lte('converted_at', monthEnd), 'leads'),
+    applyScope(supabase.from('leads').select('*', { count: 'exact', head: true }), 'leads'),
+    applyScope(supabase.from('payments').select('amount').gte('payment_date', monthStart).lte('payment_date', monthEnd), 'payments'),
+    applyScope(supabase.from('students').select('total_fee, amount_paid'), 'students'),
+    applyScope(supabase.from('students').select('*', { count: 'exact', head: true }), 'students'),
+    supabase.from('student_documents').select('*', { count: 'exact', head: true }).eq('status', 'pending'), // Leave unfiltered or skip
+    applyScope(supabase.from('leads').select('id, full_name, status, created_at, courses ( name )'), 'leads').order('created_at', { ascending: false }).limit(10),
+    applyScope(supabase.from('leads').select('id, full_name, phone, assigned_to, profiles!assigned_to ( full_name )'), 'leads').eq('next_followup_date', todayDate),
+    applyScope(supabase.from('leads').select('assigned_to, profiles!assigned_to ( id, full_name )'), 'leads').eq('status', 'converted').gte('converted_at', monthStart).lte('converted_at', monthEnd),
   ])
 
   const feeCollectedThisMonth = ((paymentsThisMonth ?? []) as { amount: number }[]).reduce((s, p) => s + (p.amount ?? 0), 0)

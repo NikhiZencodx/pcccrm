@@ -5,6 +5,7 @@ import {
   Users, BookOpen, GraduationCap, DollarSign,
   UserCheck, BarChart3, Settings, ChevronLeft,
   ChevronRight, Building2, Home, ListTree,
+  Gift, TrendingUp,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/useUIStore'
@@ -28,6 +29,8 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Departments', href: '/settings/departments', icon: Building2, roles: ['admin'] },
   { label: 'Sessions', href: '/settings/sessions', icon: ListTree, roles: ['admin'] },
   { label: 'Form Fields', href: '/settings/form-fields', icon: ListTree, roles: ['admin'] },
+  { label: 'Incentive', href: '/incentive', icon: Gift, roles: ['telecaller'] },
+  { label: 'Performance', href: '/performance', icon: TrendingUp, roles: ['telecaller'] },
   { label: 'Settings', href: '/settings/users', icon: Settings, roles: ['admin'] },
 ]
 
