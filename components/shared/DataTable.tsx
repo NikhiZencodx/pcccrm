@@ -1,3 +1,4 @@
+'use client'
 import {
   flexRender,
   getCoreRowModel,
@@ -36,7 +37,6 @@ export function DataTable<T>({ data, columns, isLoading, onRowClick, onSelection
     getCoreRowModel: getCoreRowModel(),
     enableRowSelection: true,
   })
-
 
   if (isLoading) {
     return (
