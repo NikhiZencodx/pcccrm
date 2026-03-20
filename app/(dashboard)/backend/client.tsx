@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
-import { MoreVertical, Pencil, FileText, Search, Trash2 } from 'lucide-react'
+import { MoreVertical, Pencil, FileText, Search, Trash2, Download } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -40,6 +40,7 @@ export function BackendListClient() {
   const router = useRouter()
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
+  const [exporting, setExporting] = useState(false)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [paymentFilter, setPaymentFilter] = useState('')
@@ -87,18 +88,49 @@ export function BackendListClient() {
   }, [search, statusFilter, paymentFilter])
 
   async function handleDeleteStudent(id: string) {
-    startTransition(async () => {
-      try {
-        const { error } = await supabase.from('students').delete().eq('id', id)
-        if (error) throw error
-        setStudents((prev) => prev.filter((s) => s.id !== id))
-        toast.success('Student deleted successfully')
-      } catch (err) {
-        toast.error('Failed to delete student')
-        console.error(err)
-      }
-      setDeleteStudent(null)
-    })
+    try {
+      const { error } = await supabase.from('students').delete().eq('id', id)
+      if (error) throw error
+      setStudents((prev) => prev.filter((s) => s.id !== id))
+      toast.success('Student deleted successfully')
+    } catch (err) {
+      toast.error('Failed to delete student')
+      console.error(err)
+    }
+    setDeleteStudent(null)
+  }
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      const xlsx = await import('xlsx')
+      const rows = students.map((s) => ({
+        Name: s.full_name,
+        Phone: s.phone,
+        Email: s.email || '-',
+        City: s.city || '-',
+        Mode: s.mode || '-',
+        Session: s.session?.name || '-',
+        Department: s.department?.name || '-',
+        Course: s.course?.name || '-',
+        'Sub Course': s.sub_course?.name || '-',
+        'Total Fee': s.total_fee || 0,
+        'Amount Paid': s.amount_paid || 0,
+        'Pending Balance': (s.total_fee || 0) - (s.amount_paid || 0),
+        Status: s.status,
+        'Enrollment Date': s.enrollment_date ? format(new Date(s.enrollment_date), 'dd MMM yyyy') : '-',
+      }))
+      const ws = xlsx.utils.json_to_sheet(rows)
+      const wb = xlsx.utils.book_new()
+      xlsx.utils.book_append_sheet(wb, ws, 'Students')
+      xlsx.writeFile(wb, `students-export-${format(new Date(), 'yyyy-MM-dd')}.xlsx`)
+      toast.success('Students exported successfully')
+    } catch (err) {
+      console.error('Export error:', err)
+      toast.error('Failed to export students')
+    } finally {
+      setExporting(false)
+    }
   }
 
   useEffect(() => {
@@ -161,8 +193,22 @@ export function BackendListClient() {
   ]
 
   return (
-    <div>
-      <PageHeader title="Students" description="Manage enrolled students, fees, documents and exams" />
+    <div className="space-y-6">
+      <PageHeader
+        title="Students"
+        description="Manage enrolled students, fees, documents and exams"
+        action={(
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting}>
+              <Download className="mr-2 h-4 w-4" />
+              {exporting ? 'Exporting...' : 'Export Excel'}
+            </Button>
+            <Button size="sm" onClick={() => setShowAdd(true)}>
+              <FileText className="mr-2 h-4 w-4" /> Add Student
+            </Button>
+          </div>
+        )}
+      />
 
       {/* Filters */}
       <div className="flex gap-3 mb-4">
