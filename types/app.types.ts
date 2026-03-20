@@ -200,6 +200,7 @@ export interface Student {
   mode?: 'attending' | 'non-attending'
   department_id?: string
   sub_section_id?: string
+  session_id?: string
   status: string
   created_at: string
   updated_at: string
@@ -207,6 +208,7 @@ export interface Student {
   sub_course?: SubCourse
   department?: Department
   sub_section?: DepartmentSubSection
+  session?: Session
   counsellor?: Profile
 }
 

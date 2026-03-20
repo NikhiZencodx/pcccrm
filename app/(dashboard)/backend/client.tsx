@@ -60,6 +60,7 @@ export function BackendListClient() {
           sub_course:sub_courses(id, name, is_active, created_at, course_id),
           department:departments(id, name),
           sub_section:department_sub_sections(id, name),
+          session:sessions(id, name),
           counsellor:profiles!students_assigned_counsellor_fkey(id, email, full_name, role, is_active, created_at)
         `)
         .order('created_at', { ascending: false })
@@ -109,6 +110,7 @@ export function BackendListClient() {
     { accessorKey: 'full_name', header: 'Name', cell: ({ row }) => <span className="font-medium">{row.original.full_name}</span> },
     { accessorKey: 'phone', header: 'Phone' },
     { id: 'mode', header: 'Mode', cell: ({ row }) => <Badge variant="outline" className="capitalize">{row.original.mode ?? '-'}</Badge> },
+    { id: 'session', header: 'Session', cell: ({ row }) => row.original.session?.name ?? '-' },
     { id: 'department', header: 'Dept', cell: ({ row }) => row.original.department?.name ?? '-' },
     { id: 'course', header: 'Course', cell: ({ row }) => row.original.course?.name ?? '-' },
     { id: 'counsellor', header: 'Counsellor', cell: ({ row }) => row.original.counsellor?.full_name ?? '-' },

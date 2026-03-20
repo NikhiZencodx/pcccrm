@@ -11,6 +11,7 @@ export const studentSchema = z.object({
     sub_course_id: z.string().uuid().optional().or(z.literal('')),
     department_id: z.string().uuid().optional().or(z.literal('')),
     sub_section_id: z.string().uuid().optional().or(z.literal('')),
+    session_id: z.string().uuid().optional().or(z.literal('')),
     assigned_counsellor: z.string().uuid().optional().or(z.literal('')),
     status: z.enum(['active', 'completed', 'dropped', 'on_hold']),
     mode: z.enum(['attending', 'non-attending']).optional().or(z.literal('')),

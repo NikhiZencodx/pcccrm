@@ -12,7 +12,7 @@ import { toast } from 'sonner'
 import { studentSchema, type StudentFormData } from '@/lib/validations/student.schema'
 import {
     type Student, type Course, type SubCourse, type Profile,
-    type Department, type DepartmentSubSection,
+    type Department, type DepartmentSubSection, type Session
 } from '@/types/app.types'
 
 interface StudentFormProps {
@@ -64,6 +64,7 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
     const [subCourses, setSubCourses] = useState<SubCourse[]>([])
     const [departments, setDepartments] = useState<Department[]>([])
     const [subSections, setSubSections] = useState<DepartmentSubSection[]>([])
+    const [sessions, setSessions] = useState<Session[]>([])
     const [counsellors, setCounsellors] = useState<Profile[]>([])
     const [loading, setLoading] = useState(false)
     const supabase = createClient()
@@ -81,6 +82,7 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
             sub_course_id: student?.sub_course_id ?? '',
             department_id: student?.department_id ?? '',
             sub_section_id: student?.sub_section_id ?? '',
+            session_id: student?.session_id ?? '',
             assigned_counsellor: student?.assigned_counsellor ?? '',
             status: (student?.status as any) || 'active',
             mode: student?.mode ?? '',
@@ -95,10 +97,11 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
 
     useEffect(() => {
         async function load() {
-            const [{ data: c }, { data: p }, { data: d }] = await Promise.all([
+            const [{ data: c }, { data: p }, { data: d }, { data: s }] = await Promise.all([
                 supabase.from('courses').select('*').order('name'),
                 supabase.from('profiles').select('*').order('full_name'),
                 supabase.from('departments').select('*').order('name'),
+                supabase.from('sessions').select('*').order('name', { ascending: false }),
             ])
 
             const cds = (c ?? []) as any[]
@@ -112,6 +115,7 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
             setCourses([...cds])
             setCounsellors([...pds])
             setDepartments(d ?? [])
+            setSessions(s ?? [])
 
             reset({
                 full_name: student?.full_name ?? '',
@@ -124,6 +128,7 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
                 sub_course_id: student?.sub_course_id ?? (student as any)?.sub_course?.id ?? '',
                 department_id: student?.department_id ?? (student as any)?.department?.id ?? '',
                 sub_section_id: student?.sub_section_id ?? (student as any)?.sub_section?.id ?? '',
+                session_id: student?.session_id ?? (student as any)?.session?.id ?? '',
                 assigned_counsellor: student?.assigned_counsellor ?? '',
                 status: (student?.status as any) || 'active',
                 mode: student?.mode ?? '',
@@ -177,6 +182,7 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
                 assigned_counsellor: data.assigned_counsellor || null,
                 mode: data.mode || null,
                 enrollment_date: data.enrollment_date || null,
+                session_id: data.session_id || null,
             }
 
             const { data: { user } } = await supabase.auth.getUser()
@@ -378,8 +384,22 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
             </div>
 
             <div className="bg-emerald-50/50 rounded-xl p-4 border border-emerald-100">
-                <SectionHeader icon={BookOpen} title="Course Details" color="border-emerald-200" />
+                <SectionHeader icon={BookOpen} title="Academic Details" color="border-emerald-200" />
                 <div className="grid grid-cols-2 gap-4">
+                    <FieldWrapper label="Session">
+                        <Select key={sessions.length} value={watch('session_id') || ''} onValueChange={(v) => setValue('session_id', v || '')}>
+                            <SelectTrigger className="bg-white border-emerald-200">
+                                <SelectValue placeholder="Select session">
+                                    {sessions.find(s => s.id === watch('session_id'))?.name || (student as any)?.session?.name}
+                                </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="">No session</SelectItem>
+                                {sessions.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </FieldWrapper>
+
                     <FieldWrapper label="Course">
                         <Select key={courses.length} value={watch('course_id') || ''} onValueChange={(v) => { setValue('course_id', v || ''); setValue('sub_course_id', '') }}>
                             <SelectTrigger className="bg-white border-emerald-200">
@@ -435,6 +455,6 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
                     {loading ? 'Saving...' : student?.id ? 'Update Student' : 'Add Student'}
                 </Button>
             </div>
-        </form>
+        </form >
     )
 }
