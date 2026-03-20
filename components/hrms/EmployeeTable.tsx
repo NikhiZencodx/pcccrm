@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { format } from 'date-fns'
-import { Plus, Search } from 'lucide-react'
+import { Edit, Plus, Search } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
@@ -41,6 +41,7 @@ export default function EmployeeTable({ data: initialData }: EmployeeTableProps)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
   const [showForm, setShowForm] = useState(false)
+  const [editingEmployee, setEditingEmployee] = useState<EmployeeRow | null>(null)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
 
@@ -61,23 +62,83 @@ export default function EmployeeTable({ data: initialData }: EmployeeTableProps)
   const onSubmit = (values: EmployeeFormData) => {
     startTransition(async () => {
       try {
+        const method = editingEmployee ? 'PATCH' : 'POST'
+        const payload = editingEmployee ? { ...values, id: editingEmployee.id } : values
+
         const res = await fetch('/api/hrms/employees', {
-          method: 'POST',
+          method,
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(values),
+          body: JSON.stringify(payload),
         })
         if (!res.ok) {
           const err = await res.json()
-          throw new Error(err.error || 'Failed to create employee')
+          throw new Error(err.error || `Failed to ${editingEmployee ? 'update' : 'create'} employee`)
         }
         const { employee } = await res.json()
-        setData((prev) => [employee, ...prev])
-        toast.success('Employee created')
+
+        if (editingEmployee) {
+          setData((prev) => prev.map((e) => e.id === employee.id ? employee : e))
+          toast.success('Employee updated')
+        } else {
+          setData((prev) => [employee, ...prev])
+          toast.success('Employee created')
+        }
+
         setShowForm(false)
+        setEditingEmployee(null)
         reset()
         router.refresh()
       } catch (e: unknown) {
-        toast.error(e instanceof Error ? e.message : 'Failed to create employee')
+        toast.error(e instanceof Error ? e.message : `Failed to ${editingEmployee ? 'update' : 'create'} employee`)
+      }
+    })
+  }
+
+  const handleEdit = async (id: string) => {
+    const emp = data.find(e => e.id === id)
+    if (!emp) return
+
+    startTransition(async () => {
+      try {
+        // Fetch full detail for editing (especially salary/bank fields not in table)
+        const res = await fetch(`/api/hrms/employees?id=${id}`) // Wait, I need a way to get one employee
+        // Actually, the API doesn't have a GET by ID yet. 
+        // I'll fetch it from supabase client directly if possible, or just use what I have if it's enough.
+        // Wait! The table might not have all fields.
+
+        // I'll just use the supabase client to fetch the full record.
+        const { createClient } = await import('@/lib/supabase/client')
+        const supabase = createClient()
+        const { data: fullEmp, error } = await supabase
+          .from('employees')
+          .select('*, profiles(full_name, email, phone, role)')
+          .eq('id', id)
+          .single()
+
+        if (error || !fullEmp) throw new Error('Failed to fetch employee details')
+
+        const formData: EmployeeFormData = {
+          full_name: (fullEmp as any).profiles.full_name,
+          email: (fullEmp as any).profiles.email,
+          phone: (fullEmp as any).profiles.phone || '',
+          role: (fullEmp as any).profiles.role,
+          department: (fullEmp as any).department || '',
+          designation: (fullEmp as any).designation || '',
+          joining_date: (fullEmp as any).joining_date || '',
+          basic_salary: (fullEmp as any).basic_salary || 0,
+          hra: (fullEmp as any).hra || 0,
+          allowances: (fullEmp as any).allowances || 0,
+          pf_deduction: (fullEmp as any).pf_deduction || 0,
+          tds_deduction: (fullEmp as any).tds_deduction || 0,
+          bank_account_masked: (fullEmp as any).bank_account || '',
+          bank_ifsc: (fullEmp as any).bank_ifsc || '',
+        }
+
+        setEditingEmployee(emp)
+        reset(formData)
+        setShowForm(true)
+      } catch (e) {
+        toast.error('Failed to load employee details')
       }
     })
   }
@@ -112,6 +173,24 @@ export default function EmployeeTable({ data: initialData }: EmployeeTableProps)
         </Badge>
       ),
     },
+    {
+      id: 'actions',
+      header: '',
+      cell: ({ row }) => (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+          onClick={(e) => {
+            e.stopPropagation()
+            handleEdit(row.original.id)
+          }}
+          disabled={isPending}
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
+      ),
+    },
   ]
 
   return (
@@ -135,7 +214,7 @@ export default function EmployeeTable({ data: initialData }: EmployeeTableProps)
             ))}
           </SelectContent>
         </Select>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => { setEditingEmployee(null); reset({ role: 'telecaller', hra: 0, allowances: 0, pf_deduction: 0, tds_deduction: 0 }); setShowForm(true) }}>
           <Plus className="mr-2 h-4 w-4" /> Add Employee
         </Button>
       </div>
@@ -149,7 +228,7 @@ export default function EmployeeTable({ data: initialData }: EmployeeTableProps)
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add Employee</DialogTitle>
+            <DialogTitle>{editingEmployee ? 'Edit Employee' : 'Add Employee'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -160,7 +239,7 @@ export default function EmployeeTable({ data: initialData }: EmployeeTableProps)
               </div>
               <div className="space-y-1">
                 <Label>Email</Label>
-                <Input type="email" {...register('email')} />
+                <Input type="email" {...register('email')} disabled={!!editingEmployee} />
                 {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
               </div>
               <div className="space-y-1">
@@ -226,7 +305,7 @@ export default function EmployeeTable({ data: initialData }: EmployeeTableProps)
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-              <Button type="submit" disabled={isPending}>{isPending ? 'Creating…' : 'Create Employee'}</Button>
+              <Button type="submit" disabled={isPending}>{isPending ? (editingEmployee ? 'Updating…' : 'Creating…') : (editingEmployee ? 'Update Employee' : 'Create Employee')}</Button>
             </div>
           </form>
         </DialogContent>

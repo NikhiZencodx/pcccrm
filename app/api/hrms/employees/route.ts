@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = await createServerClient()
     const { data: { session } } = await supabase.auth.getSession()
-  const user = session?.user ?? null
+    const user = session?.user ?? null
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -98,6 +98,110 @@ export async function POST(req: NextRequest) {
       tempPassword,
     })
   } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const supabase = await createServerClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user ?? null
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single() as { data: { role: string } | null }
+
+    if (!profile || profile.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const body = await req.json()
+    const { id, ...updateData } = body
+    if (!id) {
+      return NextResponse.json({ error: 'Employee ID required' }, { status: 400 })
+    }
+
+    const parsed = employeeSchema.partial().safeParse(updateData)
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+    }
+
+    // Get the employee to find their profile_id
+    const { data: employee, error: fetchError } = await supabase
+      .from('employees')
+      .select('profile_id')
+      .eq('id', id)
+      .single()
+
+    if (fetchError || !employee) {
+      return NextResponse.json({ error: 'Employee not found' }, { status: 404 })
+    }
+
+    const profileId = (employee as any).profile_id
+
+    // Update Profile
+    const profileUpdate: any = {}
+    if (updateData.full_name) profileUpdate.full_name = updateData.full_name
+    if (updateData.email) profileUpdate.email = updateData.email
+    if (updateData.phone) profileUpdate.phone = updateData.phone
+    if (updateData.role) profileUpdate.role = updateData.role
+
+    if (Object.keys(profileUpdate).length > 0) {
+      const { error: pError } = await (supabase.from('profiles') as any)
+        .update(profileUpdate)
+        .eq('id', profileId)
+      if (pError) throw pError
+    }
+
+    // Update Employee
+    const empUpdate: any = {}
+    if (updateData.department) empUpdate.department = updateData.department
+    if (updateData.designation) empUpdate.designation = updateData.designation
+    if (updateData.joining_date) empUpdate.joining_date = updateData.joining_date
+    if (updateData.basic_salary !== undefined) empUpdate.basic_salary = updateData.basic_salary
+    if (updateData.hra !== undefined) empUpdate.hra = updateData.hra
+    if (updateData.allowances !== undefined) empUpdate.allowances = updateData.allowances
+    if (updateData.pf_deduction !== undefined) empUpdate.pf_deduction = updateData.pf_deduction
+    if (updateData.tds_deduction !== undefined) empUpdate.tds_deduction = updateData.tds_deduction
+    if (updateData.bank_account_masked !== undefined) empUpdate.bank_account = updateData.bank_account_masked
+    if (updateData.bank_ifsc !== undefined) empUpdate.bank_ifsc = updateData.bank_ifsc
+
+    if (Object.keys(empUpdate).length > 0) {
+      const { error: eError } = await (supabase.from('employees') as any)
+        .update(empUpdate)
+        .eq('id', id)
+      if (eError) throw eError
+    }
+
+    // Fetch updated employee
+    const { data: updated, error: uError } = await supabase
+      .from('employees')
+      .select('*, profiles(full_name, role)')
+      .eq('id', id)
+      .single()
+
+    if (uError) throw uError
+
+    const final = {
+      ...(updated as any),
+      full_name: (updated as any).profiles.full_name,
+      role: (updated as any).profiles.role,
+    }
+    delete final.profiles
+
+    return NextResponse.json({ employee: final })
+  } catch (error) {
+    console.error('Update employee error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
