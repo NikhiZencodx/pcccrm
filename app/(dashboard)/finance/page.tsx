@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import FinanceSummary from '@/components/finance/FinanceSummary'
+import { MonthlyFinanceSummary } from '@/components/finance/MonthlyFinanceSummary'
 import { startOfMonth, endOfMonth, format } from 'date-fns'
 import Link from 'next/link'
 
@@ -48,6 +49,7 @@ export default async function FinancePage() {
         <h1 className="text-2xl font-bold">Finance Dashboard</h1>
         <p className="text-sm text-muted-foreground">{format(now, 'MMMM yyyy')}</p>
       </div>
+      <MonthlyFinanceSummary />
       <FinanceSummary
         totalIncomeThisMonth={totalIncomeThisMonth}
         totalExpensesThisMonth={totalExpensesThisMonth}
