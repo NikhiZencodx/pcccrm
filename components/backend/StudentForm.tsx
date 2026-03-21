@@ -200,25 +200,6 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
                 } as never).eq('id', student.id)
                 if (error) throw error
 
-                // Record new payment if amount entered
-                const newPayAmt = parseFloat(paymentAmount)
-                if (!isNaN(newPayAmt) && newPayAmt > 0) {
-                    const { error: payErr } = await supabase.from('payments').insert({
-                        student_id: student.id,
-                        lead_id: student.lead_id ?? null,
-                        amount: newPayAmt,
-                        payment_mode: paymentMode,
-                        payment_date: paymentDate,
-                        receipt_number: paymentReceipt || null,
-                        notes: null,
-                        recorded_by: user?.id,
-                    } as never)
-                    if (payErr) throw payErr
-                    // Update amount_paid on student
-                    await supabase.from('students').update({
-                        amount_paid: (student.amount_paid ?? 0) + newPayAmt,
-                    } as never).eq('id', student.id)
-                }
                 toast.success('Student profile updated')
             } else {
                 const { data: newStudent, error } = await supabase.from('students').insert({
@@ -465,64 +446,40 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
                             />
                         </div>
                     </FieldWrapper>
-                </div>
 
-                {/* Payment details section */}
-                <div className="mt-4 pt-4 border-t border-orange-200">
-                    <p className="text-xs font-semibold text-orange-700 uppercase tracking-wide mb-3">
-                        {student?.id ? 'Record New Payment' : 'Payment Details'}
-                    </p>
-                    <div className="grid grid-cols-2 gap-3">
-                        {/* Payment amount only for existing students */}
-                        {student?.id && (
-                            <FieldWrapper label="Payment Amount (₹)">
-                                <div className="relative">
-                                    <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-400" />
-                                    <Input
-                                        type="number"
-                                        min="0"
-                                        placeholder="0"
-                                        value={paymentAmount}
-                                        onChange={(e) => setPaymentAmount(e.target.value)}
-                                        className="pl-9 bg-white border-orange-200"
-                                    />
-                                </div>
+                    <FieldWrapper label="Payment Mode">
+                        <Select value={paymentMode} onValueChange={(v) => setPaymentMode(v ?? 'cash')}>
+                            <SelectTrigger className="bg-white border-orange-200">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {Object.entries(PAYMENT_MODE_LABELS).map(([k, v]) => (
+                                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </FieldWrapper>
+
+                    {!student?.id && (
+                        <>
+                            <FieldWrapper label="Payment Date">
+                                <Input
+                                    type="date"
+                                    value={paymentDate}
+                                    onChange={(e) => setPaymentDate(e.target.value)}
+                                    className="bg-white border-orange-200"
+                                />
                             </FieldWrapper>
-                        )}
 
-                        <FieldWrapper label="Payment Mode">
-                            <Select value={paymentMode} onValueChange={(v) => setPaymentMode(v ?? 'cash')}>
-                                <SelectTrigger className="bg-white border-orange-200">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {Object.entries(PAYMENT_MODE_LABELS).map(([k, v]) => (
-                                        <SelectItem key={k} value={k}>{v}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </FieldWrapper>
-
-                        <FieldWrapper label="Payment Date">
-                            <Input
-                                type="date"
-                                value={paymentDate}
-                                onChange={(e) => setPaymentDate(e.target.value)}
-                                className="bg-white border-orange-200"
-                            />
-                        </FieldWrapper>
-
-                        <FieldWrapper label="Receipt Number">
-                            <Input
-                                placeholder="Optional"
-                                value={paymentReceipt}
-                                onChange={(e) => setPaymentReceipt(e.target.value)}
-                                className="bg-white border-orange-200"
-                            />
-                        </FieldWrapper>
-                    </div>
-                    {student?.id && (
-                        <p className="text-xs text-orange-600 mt-2">Leave amount as 0 to skip recording a payment.</p>
+                            <FieldWrapper label="Receipt Number">
+                                <Input
+                                    placeholder="Optional"
+                                    value={paymentReceipt}
+                                    onChange={(e) => setPaymentReceipt(e.target.value)}
+                                    className="bg-white border-orange-200"
+                                />
+                            </FieldWrapper>
+                        </>
                     )}
                 </div>
             </div>
