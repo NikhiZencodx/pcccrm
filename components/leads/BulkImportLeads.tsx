@@ -15,7 +15,6 @@ const LEAD_FIELDS = [
   { key: 'state', label: 'State', required: false },
   { key: 'source', label: 'Source', required: false },
   { key: 'status', label: 'Status', required: false },
-  { key: 'notes', label: 'Notes', required: false },
 ]
 
 const SOURCE_VALUES = ['website', 'walk_in', 'referral', 'whatsapp', 'phone', 'excel_import', 'social_media', 'other']
@@ -121,7 +120,6 @@ export function BulkImportLeads({ onSuccess, onCancel }: BulkImportLeadsProps) {
           state: mapping.state ? row[mapping.state]?.trim() || null : null,
           source: SOURCE_VALUES.includes(source) ? source : 'other',
           status: STATUS_VALUES.includes(status) ? status : 'new',
-          notes: mapping.notes ? row[mapping.notes]?.trim() || null : null,
           created_by: user?.id,
         }
       }).filter((l) => l.full_name && l.phone)
