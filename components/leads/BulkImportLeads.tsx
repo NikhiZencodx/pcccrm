@@ -15,10 +15,6 @@ const LEAD_FIELDS = [
   { key: 'state', label: 'State', required: false },
   { key: 'source', label: 'Source', required: false },
   { key: 'status', label: 'Status', required: false },
-  { key: 'course_id', label: 'Course', required: false },
-  { key: 'sub_course_id', label: 'Standard', required: false },
-  { key: 'department_id', label: 'Department', required: false },
-  { key: 'sub_section_id', label: 'University/Board', required: false },
   { key: 'notes', label: 'Notes', required: false },
 ]
 
@@ -125,10 +121,10 @@ export function BulkImportLeads({ onSuccess, onCancel }: BulkImportLeadsProps) {
           state: mapping.state ? row[mapping.state]?.trim() || null : null,
           source: SOURCE_VALUES.includes(source) ? source : 'other',
           status: STATUS_VALUES.includes(status) ? status : 'new',
-          course_id: mapping.course_id ? row[mapping.course_id]?.trim() || null : null,
-          sub_course_id: mapping.sub_course_id ? row[mapping.sub_course_id]?.trim() || null : null,
-          department_id: mapping.department_id ? row[mapping.department_id]?.trim() || null : null,
-          sub_section_id: mapping.sub_section_id ? row[mapping.sub_section_id]?.trim() || null : null,
+          course_id: null,
+          sub_course_id: null,
+          department_id: null,
+          sub_section_id: null,
           notes: mapping.notes ? row[mapping.notes]?.trim() || null : null,
           created_by: user?.id,
         }
