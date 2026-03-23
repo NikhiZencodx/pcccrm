@@ -55,7 +55,17 @@ export default function LeadImportPage() {
         const data = new Uint8Array(e.target?.result as ArrayBuffer)
         const workbook = read(data, { type: 'array' })
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        const jsonData = utils.sheet_to_json<Record<string, string>>(sheet, { defval: '' })
+        const rawData = utils.sheet_to_json<Record<string, string>>(sheet, { defval: '', raw: false })
+
+        // Normalize headers: "Full Name" → "full_name", "Phone" → "phone", etc.
+        const jsonData = rawData.map((row) => {
+          const normalized: Record<string, string> = {}
+          for (const key of Object.keys(row)) {
+            const normKey = key.trim().toLowerCase().replace(/[\s/()]+/g, '_').replace(/_+$/, '')
+            normalized[normKey] = row[key]
+          }
+          return normalized
+        })
 
         const parsed: ImportRow[] = jsonData.map((row, idx) => {
           const errors: string[] = []
