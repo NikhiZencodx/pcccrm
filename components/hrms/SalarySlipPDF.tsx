@@ -213,18 +213,14 @@ export function SalarySlipPDF({
                   <Text style={styles.empValue}>{employeeCode}</Text>
                 </View>
               ) : null}
-              {designation ? (
-                <View style={styles.empField}>
-                  <Text style={styles.empLabel}>Designation</Text>
-                  <Text style={styles.empValue}>{designation}</Text>
-                </View>
-              ) : null}
-              {department ? (
-                <View style={styles.empField}>
-                  <Text style={styles.empLabel}>Department</Text>
-                  <Text style={styles.empValue}>{department}</Text>
-                </View>
-              ) : null}
+              <View style={styles.empField}>
+                <Text style={styles.empLabel}>Designation</Text>
+                <Text style={styles.empValue}>{designation || '—'}</Text>
+              </View>
+              <View style={styles.empField}>
+                <Text style={styles.empLabel}>Department</Text>
+                <Text style={styles.empValue}>{department || '—'}</Text>
+              </View>
               <View style={styles.empField}>
                 <Text style={styles.empLabel}>Pay Period</Text>
                 <Text style={styles.empValue}>{monthName}</Text>
