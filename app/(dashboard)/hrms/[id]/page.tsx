@@ -139,7 +139,7 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
         </TabsContent>
 
         <TabsContent value="payroll" className="space-y-4 pt-4">
-          <PayrollTable data={payrollRows} isAdmin={profile?.role === 'admin'} employeeId={employee.id} totalIncentives={totalIncentives} employeeName={profile?.full_name || 'Employee'} />
+          <PayrollTable data={payrollRows} isAdmin={['admin', 'backend'].includes(currentProfile.role)} employeeId={employee.id} totalIncentives={totalIncentives} employeeName={profile?.full_name || 'Employee'} />
         </TabsContent>
 
         <TabsContent value="incentives" className="pt-4 space-y-4">
@@ -153,6 +153,36 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
             </div>
           </div>
 
+          {/* Month-wise summary */}
+          {assignedStudents.length > 0 && (() => {
+            const monthMap: Record<string, { label: string; total: number }> = {}
+            for (const s of assignedStudents) {
+              if (!s.enrollment_date) continue
+              const d = new Date(s.enrollment_date)
+              const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+              const label = format(d, 'MMMM yyyy')
+              if (!monthMap[key]) monthMap[key] = { label, total: 0 }
+              monthMap[key].total += s.incentive_amount || 0
+            }
+            const months = Object.entries(monthMap).sort((a, b) => b[0].localeCompare(a[0]))
+            return (
+              <div className="rounded-lg border overflow-hidden">
+                <div className="bg-gray-50 px-4 py-2 border-b">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Month-wise Breakdown</p>
+                </div>
+                <div className="divide-y">
+                  {months.map(([key, { label, total }]) => (
+                    <div key={key} className="flex justify-between items-center px-4 py-3">
+                      <span className="text-sm font-medium text-gray-700">{label}</span>
+                      <span className="text-sm font-bold text-purple-700">{fmt(total)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Student-wise detail */}
           <div className="rounded-lg border overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b">
@@ -169,7 +199,7 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
                     <td colSpan={4} className="px-4 py-8 text-center text-gray-400">No incentives recorded yet</td>
                   </tr>
                 ) : (
-                  assignedStudents.map(s => (
+                  assignedStudents.map((s: any) => (
                     <tr key={s.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium">{s.full_name}</td>
                       <td className="px-4 py-3 text-gray-600">{s.course?.name || '—'}</td>
