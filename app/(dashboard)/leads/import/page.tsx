@@ -110,7 +110,7 @@ export default function LeadImportPage() {
     // Fetch existing phones to skip duplicates (avoids 400 from missing unique constraint)
     const phones = validRows.map((r) => r.phone)
     const { data: existing } = await supabase.from('leads').select('phone').in('phone', phones)
-    const existingPhones = new Set((existing ?? []).map((r) => r.phone))
+    const existingPhones = new Set((existing ?? []).map((r: { phone: string }) => r.phone))
 
     const newRows = validRows.filter((r) => !existingPhones.has(r.phone))
     const skipped = validRows.length - newRows.length
