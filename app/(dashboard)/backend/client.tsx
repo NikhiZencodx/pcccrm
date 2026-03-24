@@ -310,14 +310,22 @@ export function BackendListClient() {
       <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border mb-2">
         <span className="text-xs font-semibold text-gray-500 self-center w-full mb-1">Step 1 — Department &amp; Board</span>
         <Select value={departmentFilter} onValueChange={(v) => setDepartmentFilter(v ?? '')}>
-          <SelectTrigger className="w-44 h-9"><SelectValue placeholder="All Departments" /></SelectTrigger>
+          <SelectTrigger className="w-44 h-9">
+            <span className="text-sm truncate">
+              {departmentFilter ? departments.find(d => d.id === departmentFilter)?.name ?? 'All Departments' : 'All Departments'}
+            </span>
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="">All Departments</SelectItem>
             {departments.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={boardFilter} onValueChange={(v) => setBoardFilter(v ?? '')}>
-          <SelectTrigger className="w-44 h-9"><SelectValue placeholder="All Boards" /></SelectTrigger>
+          <SelectTrigger className="w-44 h-9">
+            <span className="text-sm truncate">
+              {boardFilter ? boards.find(b => b.id === boardFilter)?.name ?? 'All Boards' : 'All Boards'}
+            </span>
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="">All Boards</SelectItem>
             {boards.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
@@ -398,7 +406,6 @@ export function BackendListClient() {
         columns={columns}
         isLoading={loading}
         onRowClick={(s) => router.push(`/backend/${s.id}`)}
-        showColumnFilters
       />
 
       <Dialog open={!!editStudent} onOpenChange={(open) => !open && setEditStudent(null)}>
