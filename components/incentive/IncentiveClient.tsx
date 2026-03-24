@@ -100,7 +100,10 @@ export function IncentiveClient({ role, myEmployeeId, employees, studentIncentiv
     }
   }
 
-  const totalIncentive = payrollRows.reduce((s, r) => s + (r.incentive ?? 0), 0)
+  // For lead: total from students, paid from payroll rows with status=paid
+  const totalIncentive = role === 'lead'
+    ? studentIncentives.reduce((s, r) => s + (r.incentive_amount ?? 0), 0)
+    : payrollRows.reduce((s, r) => s + (r.incentive ?? 0), 0)
   const paidIncentive = payrollRows.filter((r) => r.status === 'paid').reduce((s, r) => s + (r.incentive ?? 0), 0)
   const unpaidIncentive = totalIncentive - paidIncentive
   const years = Array.from({ length: 5 }, (_, i) => String(new Date().getFullYear() - i))
