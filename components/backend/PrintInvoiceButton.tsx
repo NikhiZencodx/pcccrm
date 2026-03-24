@@ -15,20 +15,24 @@ interface PrintInvoiceButtonProps {
 export function PrintInvoiceButton({ student }: PrintInvoiceButtonProps) {
     const [loading, setLoading] = useState(false)
     const [payments, setPayments] = useState<Payment[]>([])
+    const [logoBase64, setLogoBase64] = useState<string>('')
     const [ready, setReady] = useState(false)
     const supabase = createClient()
 
     async function handlePrepare() {
         setLoading(true)
         try {
-            const { data, error } = await supabase
-                .from('payments')
-                .select('*')
-                .eq('student_id', student.id)
-                .order('payment_date', { ascending: true })
-
-            if (error) throw error
-            setPayments(data ?? [])
+            const [paymentsRes, logoRes] = await Promise.all([
+                supabase.from('payments').select('*').eq('student_id', student.id).order('payment_date', { ascending: true }),
+                fetch('/brand-logo.png').then(r => r.blob()).then(blob => new Promise<string>((resolve) => {
+                    const reader = new FileReader()
+                    reader.onloadend = () => resolve(reader.result as string)
+                    reader.readAsDataURL(blob)
+                })).catch(() => ''),
+            ])
+            if (paymentsRes.error) throw paymentsRes.error
+            setPayments(paymentsRes.data ?? [])
+            setLogoBase64(logoRes)
             setReady(true)
         } catch (err) {
             toast.error('Failed to load payment history')
@@ -41,7 +45,7 @@ export function PrintInvoiceButton({ student }: PrintInvoiceButtonProps) {
     if (ready) {
         return (
             <PDFDownloadLink
-                document={<InvoicePDF student={student} payments={payments} />}
+                document={<InvoicePDF student={student} payments={payments} logoBase64={logoBase64} />}
                 fileName={`Invoice_${student.full_name.replace(/\s+/g, '_')}.pdf`}
                 className="flex items-center"
             >
