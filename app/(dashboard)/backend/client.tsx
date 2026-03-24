@@ -50,9 +50,13 @@ export function BackendListClient() {
   const [sessionFilter, setSessionFilter] = useState('')
   const [counsellorFilter, setCounsellorFilter] = useState('')
   const [modeFilter, setModeFilter] = useState('')
+  const [departmentFilter, setDepartmentFilter] = useState('')
+  const [boardFilter, setBoardFilter] = useState('')
   const [courses, setCourses] = useState<FilterOption[]>([])
   const [sessions, setSessions] = useState<FilterOption[]>([])
   const [counsellors, setCounsellors] = useState<FilterOption[]>([])
+  const [departments, setDepartments] = useState<FilterOption[]>([])
+  const [boards, setBoards] = useState<FilterOption[]>([])
   const [editStudent, setEditStudent] = useState<Student | null>(null)
   const [deleteStudent, setDeleteStudent] = useState<Student | null>(null)
   const [showAdd, setShowAdd] = useState(false)
@@ -62,14 +66,18 @@ export function BackendListClient() {
   // Load filter options once
   useEffect(() => {
     async function loadOptions() {
-      const [coursesRes, sessionsRes, counsellorsRes] = await Promise.all([
+      const [coursesRes, sessionsRes, counsellorsRes, deptRes, boardRes] = await Promise.all([
         supabase.from('courses').select('id, name').eq('is_active', true).order('name'),
         supabase.from('sessions').select('id, name').order('name'),
         supabase.from('profiles').select('id, full_name').eq('role', 'lead').order('full_name'),
+        supabase.from('departments').select('id, name').order('name'),
+        supabase.from('department_sub_sections').select('id, name').order('name'),
       ])
       setCourses((coursesRes.data ?? []) as FilterOption[])
       setSessions((sessionsRes.data ?? []) as FilterOption[])
       setCounsellors(((counsellorsRes.data ?? []) as { id: string; full_name: string }[]).map(p => ({ id: p.id, name: p.full_name })))
+      setDepartments((deptRes.data ?? []) as FilterOption[])
+      setBoards((boardRes.data ?? []) as FilterOption[])
     }
     loadOptions()
   }, [])
@@ -96,6 +104,8 @@ export function BackendListClient() {
       if (sessionFilter) query = query.eq('session_id', sessionFilter)
       if (counsellorFilter) query = query.eq('assigned_counsellor', counsellorFilter)
       if (modeFilter) query = query.eq('mode', modeFilter)
+      if (departmentFilter) query = query.eq('department_id', departmentFilter)
+      if (boardFilter) query = query.eq('sub_section_id', boardFilter)
       if (paymentFilter === 'paid') query = query.gt('amount_paid', 0).gte('amount_paid', 'total_fee')
       if (paymentFilter === 'unpaid') query = query.eq('amount_paid', 0)
       if (paymentFilter === 'partial') query = query.gt('amount_paid', 0).lt('amount_paid', 'total_fee')
@@ -111,7 +121,7 @@ export function BackendListClient() {
     } finally {
       setLoading(false)
     }
-  }, [search, statusFilter, paymentFilter, courseFilter, sessionFilter, counsellorFilter, modeFilter])
+  }, [search, statusFilter, paymentFilter, courseFilter, sessionFilter, counsellorFilter, modeFilter, departmentFilter, boardFilter])
 
   async function handleDeleteStudent(id: string) {
     try {
@@ -197,13 +207,14 @@ export function BackendListClient() {
       cell: ({ row }) => <span className="text-gray-500 tabular-nums">{row.index + 1}</span>,
     },
     { accessorKey: 'full_name', header: 'Name', cell: ({ row }) => <span className="font-medium">{row.original.full_name}</span> },
-    { id: 'guardian_name', header: "Father's Name", cell: ({ row }) => row.original.guardian_name ?? '-' },
+    { id: 'guardian_name', accessorFn: (row) => row.guardian_name ?? '', header: "Father's Name", cell: ({ row }) => row.original.guardian_name ?? '-' },
     { accessorKey: 'phone', header: 'Phone' },
-    { id: 'mode', header: 'Mode', cell: ({ row }) => <Badge variant="outline" className="capitalize">{row.original.mode ?? '-'}</Badge> },
-    { id: 'session', header: 'Session', cell: ({ row }) => row.original.session?.name ?? '-' },
-    { id: 'department', header: 'Dept', cell: ({ row }) => row.original.department?.name ?? '-' },
-    { id: 'course', header: 'Course', cell: ({ row }) => row.original.course?.name ?? '-' },
-    { id: 'counsellor', header: 'Counsellor', cell: ({ row }) => row.original.counsellor?.full_name ?? '-' },
+    { id: 'mode', accessorFn: (row) => row.mode ?? '', header: 'Mode', cell: ({ row }) => <Badge variant="outline" className="capitalize">{row.original.mode ?? '-'}</Badge> },
+    { id: 'session', accessorFn: (row) => row.session?.name ?? '', header: 'Session', cell: ({ row }) => row.original.session?.name ?? '-' },
+    { id: 'department', accessorFn: (row) => row.department?.name ?? '', header: 'Dept', cell: ({ row }) => row.original.department?.name ?? '-' },
+    { id: 'sub_section', accessorFn: (row) => row.sub_section?.name ?? '', header: 'Board', cell: ({ row }) => row.original.sub_section?.name ?? '-' },
+    { id: 'course', accessorFn: (row) => row.course?.name ?? '', header: 'Course', cell: ({ row }) => row.original.course?.name ?? '-' },
+    { id: 'counsellor', accessorFn: (row) => row.counsellor?.full_name ?? '', header: 'Counsellor', cell: ({ row }) => row.original.counsellor?.full_name ?? '-' },
     { accessorKey: 'total_fee', header: 'Total Fee', cell: ({ row }) => row.original.total_fee ? formatCurrency(row.original.total_fee) : '-' },
     { accessorKey: 'amount_paid', header: 'Paid', cell: ({ row }) => <span className="text-green-700">{formatCurrency(row.original.amount_paid ?? 0)}</span> },
     {
@@ -268,6 +279,33 @@ export function BackendListClient() {
         )}
       />
 
+      {/* Board-wise count stats */}
+      {!loading && students.length > 0 && (() => {
+        const boardCounts = students.reduce((acc, s) => {
+          const b = s.sub_section?.name
+          if (b) acc[b] = (acc[b] ?? 0) + 1
+          return acc
+        }, {} as Record<string, number>)
+        const entries = Object.entries(boardCounts)
+        if (!entries.length) return null
+        return (
+          <div className="flex flex-wrap gap-2 mb-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+            <span className="text-xs font-medium text-blue-600 self-center">Board-wise:</span>
+            {entries.map(([board, count]) => (
+              <Badge
+                key={board}
+                variant="outline"
+                className="text-xs cursor-pointer border-blue-200 text-blue-700 bg-white hover:bg-blue-100"
+                onClick={() => setBoardFilter(boards.find(b => b.name === board)?.id ?? '')}
+              >
+                {board}: {count}
+              </Badge>
+            ))}
+            <span className="text-xs text-blue-500 self-center ml-auto">Total: {students.length}</span>
+          </div>
+        )
+      })()}
+
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-4">
         <div className="relative flex-1 min-w-[180px] max-w-xs">
@@ -320,6 +358,20 @@ export function BackendListClient() {
             {counsellors.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={departmentFilter} onValueChange={(v) => setDepartmentFilter(v ?? '')}>
+          <SelectTrigger className="w-36 h-9"><SelectValue placeholder="Department" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Depts</SelectItem>
+            {departments.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={boardFilter} onValueChange={(v) => setBoardFilter(v ?? '')}>
+          <SelectTrigger className="w-36 h-9"><SelectValue placeholder="Board" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Boards</SelectItem>
+            {boards.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
         <Select value={paymentFilter} onValueChange={(v) => setPaymentFilter(v ?? '')}>
           <SelectTrigger className="w-32 h-9"><SelectValue placeholder="Payment" /></SelectTrigger>
           <SelectContent>
@@ -336,6 +388,7 @@ export function BackendListClient() {
         columns={columns}
         isLoading={loading}
         onRowClick={(s) => router.push(`/backend/${s.id}`)}
+        showColumnFilters
       />
 
       <Dialog open={!!editStudent} onOpenChange={(open) => !open && setEditStudent(null)}>

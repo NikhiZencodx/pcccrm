@@ -2,8 +2,10 @@
 import {
   flexRender,
   getCoreRowModel,
+  getFilteredRowModel,
   useReactTable,
   type ColumnDef,
+  type ColumnFiltersState,
 } from '@tanstack/react-table'
 import {
   Table,
@@ -22,18 +24,22 @@ interface DataTableProps<T> {
   isLoading?: boolean
   onRowClick?: (row: T) => void
   onSelectionChange?: (rows: T[]) => void
+  showColumnFilters?: boolean
 }
 
-export function DataTable<T>({ data, columns, isLoading, onRowClick, onSelectionChange }: DataTableProps<T>) {
+export function DataTable<T>({ data, columns, isLoading, onRowClick, onSelectionChange, showColumnFilters }: DataTableProps<T>) {
   const [rowSelection, setRowSelection] = useState({})
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 
   const table = useReactTable({
     data,
     columns,
     state: {
       rowSelection,
+      ...(showColumnFilters ? { columnFilters } : {}),
     },
     onRowSelectionChange: setRowSelection,
+    ...(showColumnFilters ? { onColumnFiltersChange: setColumnFilters, getFilteredRowModel: getFilteredRowModel() } : {}),
     getCoreRowModel: getCoreRowModel(),
     enableRowSelection: true,
   })
@@ -53,15 +59,34 @@ export function DataTable<T>({ data, columns, isLoading, onRowClick, onSelection
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(header.column.columnDef.header, header.getContext())}
-                </TableHead>
-              ))}
-            </TableRow>
+            <>
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
+              </TableRow>
+              {showColumnFilters && (
+                <TableRow key={`${headerGroup.id}-filters`} className="bg-gray-50 hover:bg-gray-50 border-b-2">
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={`filter-${header.id}`} className="py-1 px-2">
+                      {header.column.getCanFilter() ? (
+                        <input
+                          value={(header.column.getFilterValue() as string) ?? ''}
+                          onChange={(e) => header.column.setFilterValue(e.target.value || undefined)}
+                          placeholder="🔍"
+                          className="w-full text-xs border border-gray-200 rounded px-2 py-1 h-7 bg-white focus:outline-none focus:border-blue-400 min-w-[60px]"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      ) : null}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              )}
+            </>
           ))}
         </TableHeader>
         <TableBody>
