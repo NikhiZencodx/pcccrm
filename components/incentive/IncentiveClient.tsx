@@ -195,71 +195,74 @@ export function IncentiveClient({ role, myEmployeeId, employees, studentIncentiv
 
       {/* Student-wise incentive detail — only for lead/telecaller */}
       {role === 'lead' && (
-        <div className="space-y-4">
-          <div className="rounded-lg border overflow-hidden">
-            <div className="px-4 py-3 border-b bg-purple-50 flex items-center justify-between">
-              <h3 className="font-semibold text-sm text-purple-900">My Student Enrollments — Incentive Detail</h3>
-              <span className="text-sm font-bold text-purple-700">{fmt(studentIncentives.reduce((s, r) => s + r.incentive_amount, 0))}</span>
-            </div>
-
-            {/* Month-wise breakdown */}
-            {studentIncentives.length > 0 && (() => {
-              const monthMap: Record<string, { label: string; total: number }> = {}
-              for (const s of studentIncentives) {
-                if (!s.enrollment_date) continue
-                const d = new Date(s.enrollment_date)
-                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-                if (!monthMap[key]) monthMap[key] = { label: format(d, 'MMMM yyyy'), total: 0 }
-                monthMap[key].total += s.incentive_amount
-              }
-              const months = Object.entries(monthMap).sort((a, b) => b[0].localeCompare(a[0]))
-              return (
-                <div className="border-b">
-                  <div className="px-4 py-2 bg-gray-50 border-b">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Month-wise Summary</p>
-                  </div>
-                  <div className="divide-y">
-                    {months.map(([key, { label, total }]) => (
-                      <div key={key} className="flex justify-between items-center px-4 py-2.5">
-                        <span className="text-sm font-medium text-gray-700">{label}</span>
-                        <span className="text-sm font-bold text-purple-700">{fmt(total)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )
-            })()}
-
-            {/* Student list */}
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-4 py-2.5 text-left font-medium text-gray-500">Student</th>
-                  <th className="px-4 py-2.5 text-left font-medium text-gray-500">Course</th>
-                  <th className="px-4 py-2.5 text-left font-medium text-gray-500">Enrollment Date</th>
-                  <th className="px-4 py-2.5 text-right font-medium text-gray-500">Incentive</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {studentIncentives.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-4 py-8 text-center text-gray-400">No student incentives found</td>
-                  </tr>
-                ) : (
-                  studentIncentives.map((s) => (
-                    <tr key={s.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium">{s.full_name}</td>
-                      <td className="px-4 py-3 text-gray-600">{s.course_name}</td>
-                      <td className="px-4 py-3 text-gray-600">
-                        {s.enrollment_date ? format(new Date(s.enrollment_date), 'dd MMM yyyy') : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold text-green-600">{fmt(s.incentive_amount)}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-base">My Student Enrollments — Month-wise</h3>
+            <span className="text-sm text-purple-700 font-bold bg-purple-50 px-3 py-1 rounded-full">
+              Total: {fmt(studentIncentives.reduce((s, r) => s + r.incentive_amount, 0))}
+            </span>
           </div>
+
+          {studentIncentives.length === 0 ? (
+            <div className="rounded-lg border px-4 py-10 text-center text-sm text-gray-400">
+              No student incentives found
+            </div>
+          ) : (() => {
+            // Group students by enrollment month
+            const monthMap: Record<string, { label: string; total: number; students: typeof studentIncentives }> = {}
+            for (const s of studentIncentives) {
+              const d = s.enrollment_date ? new Date(s.enrollment_date) : null
+              const key = d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` : 'unknown'
+              const label = d ? format(d, 'MMMM yyyy') : 'Unknown Date'
+              if (!monthMap[key]) monthMap[key] = { label, total: 0, students: [] }
+              monthMap[key].total += s.incentive_amount
+              monthMap[key].students.push(s)
+            }
+            const months = Object.entries(monthMap).sort((a, b) => b[0].localeCompare(a[0]))
+
+            return (
+              <div className="space-y-3">
+                {months.map(([key, { label, total, students }]) => (
+                  <div key={key} className="rounded-lg border overflow-hidden">
+                    {/* Month header */}
+                    <div className="flex items-center justify-between px-4 py-3 bg-purple-50 border-b">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-purple-500 inline-block" />
+                        <span className="font-semibold text-sm text-purple-900">{label}</span>
+                        <span className="text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">
+                          {students.length} student{students.length > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <span className="font-bold text-purple-700">{fmt(total)}</span>
+                    </div>
+                    {/* Students in this month */}
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 border-b">
+                        <tr>
+                          <th className="px-4 py-2 text-left font-medium text-gray-500 text-xs">Student</th>
+                          <th className="px-4 py-2 text-left font-medium text-gray-500 text-xs">Course</th>
+                          <th className="px-4 py-2 text-left font-medium text-gray-500 text-xs">Date</th>
+                          <th className="px-4 py-2 text-right font-medium text-gray-500 text-xs">Incentive</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {students.map((s) => (
+                          <tr key={s.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-2.5 font-medium">{s.full_name}</td>
+                            <td className="px-4 py-2.5 text-gray-600">{s.course_name}</td>
+                            <td className="px-4 py-2.5 text-gray-500 text-xs">
+                              {s.enrollment_date ? format(new Date(s.enrollment_date), 'dd MMM') : '—'}
+                            </td>
+                            <td className="px-4 py-2.5 text-right font-semibold text-green-600">{fmt(s.incentive_amount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
         </div>
       )}
 
