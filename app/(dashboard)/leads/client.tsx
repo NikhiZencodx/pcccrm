@@ -41,7 +41,7 @@ export function LeadsClient() {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-      setCurrentProfile(profile as Profile)
+      setCurrentProfile(profile as unknown as Profile)
     })
 
     Promise.all([
@@ -57,7 +57,7 @@ export function LeadsClient() {
     if (!currentProfile) return
     setLoading(true)
     try {
-      const isTelecaller = currentProfile.role === 'lead' || currentProfile.role === 'telecaller'
+      const isTelecaller = (currentProfile.role as string) === 'lead' || (currentProfile.role as string) === 'telecaller'
 
       let query = supabase
         .from('leads')
