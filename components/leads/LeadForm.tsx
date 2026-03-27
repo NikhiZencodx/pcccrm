@@ -255,7 +255,7 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
           changes.push(`Follow-up: ${lead.next_followup_date ?? 'None'} → ${data.next_followup_date || 'Cleared'}`)
         }
 
-        const { error } = await supabase.from('leads').update(payload as never).eq('id', lead.id)
+        const { error } = await supabase.from('leads').update({ ...payload, updated_at: new Date().toISOString() } as never).eq('id', lead.id)
         if (error) throw error
 
         const { data: { user } } = await supabase.auth.getUser()

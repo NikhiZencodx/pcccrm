@@ -141,7 +141,7 @@ export function LeadTable({ leads, isLoading, onRefresh, courses = [], telecalle
     if (newStatus === 'converted') { setStatusLead(lead); return }
     startTransition(async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      const { error } = await supabase.from('leads').update({ status: newStatus } as never).eq('id', lead.id)
+      const { error } = await supabase.from('leads').update({ status: newStatus, updated_at: new Date().toISOString() } as never).eq('id', lead.id)
       if (error) { toast.error('Failed to update status'); return }
 
       await supabase.from('lead_activities').insert({

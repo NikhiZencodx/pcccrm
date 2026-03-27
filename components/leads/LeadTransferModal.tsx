@@ -39,6 +39,7 @@ export function LeadTransferModal({ open, onClose, leadIds, currentAssignee, onS
         const { error } = await supabase.from('leads').update({
           assigned_to: selectedId,
           assigned_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         } as never).in('id', leadIds)
         if (error) throw error
 
