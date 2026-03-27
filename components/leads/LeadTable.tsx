@@ -289,6 +289,36 @@ export function LeadTable({ leads, isLoading, onRefresh, courses = [], telecalle
         </div>
       </div>
 
+      {/* Bulk action bar — shows when rows are selected */}
+      {selected.size > 0 && (
+        <div className="px-4 py-2.5 bg-blue-600 border-b border-blue-700 flex items-center gap-3">
+          <span className="text-white text-sm font-semibold">{selected.size} lead{selected.size > 1 ? 's' : ''} selected</span>
+          <div className="flex items-center gap-2 ml-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-7 text-xs bg-white text-blue-700 hover:bg-blue-50 border-0"
+              onClick={() => setTransferLeadIds(Array.from(selected))}
+            >
+              Transfer
+            </Button>
+            <Button
+              size="sm"
+              className="h-7 text-xs bg-red-500 hover:bg-red-600 text-white border-0"
+              onClick={() => setShowBulkDelete(true)}
+            >
+              Delete
+            </Button>
+          </div>
+          <button
+            className="ml-auto text-blue-200 hover:text-white"
+            onClick={() => setSelected(new Set())}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="overflow-x-auto">
         {isLoading ? (
@@ -296,7 +326,7 @@ export function LeadTable({ leads, isLoading, onRefresh, courses = [], telecalle
         ) : paginated.length === 0 ? (
           <div className="py-16 text-center text-gray-400 text-sm">No leads found</div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/60">
                 <th className="pl-4 pr-2 py-3 w-10">
@@ -420,13 +450,6 @@ export function LeadTable({ leads, isLoading, onRefresh, courses = [], telecalle
           </div>
 
           <div className="flex items-center gap-3 text-sm text-gray-500">
-            {selected.size > 0 && (
-              <div className="flex items-center gap-2 mr-2">
-                <span className="text-blue-600 font-medium">{selected.size} selected</span>
-                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setTransferLeadIds(Array.from(selected))}>Transfer</Button>
-                <Button variant="destructive" size="sm" className="h-7 text-xs" onClick={() => setShowBulkDelete(true)}>Delete</Button>
-              </div>
-            )}
             <span>
               {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, sorted.length)} of {sorted.length}
             </span>
