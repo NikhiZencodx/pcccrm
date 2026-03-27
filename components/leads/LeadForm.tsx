@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { User, Phone, Mail, MapPin, Tag, BookOpen, UserCheck, Building2, Calendar, IndianRupee, FileText, Sparkles, CalendarDays } from 'lucide-react'
+import { User, Phone, Mail, MapPin, Tag, BookOpen, UserCheck, Building2, Calendar, IndianRupee, FileText, Sparkles, CalendarDays, Bell, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -251,6 +251,9 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
           const newUser = telecallers.find(t => t.id === data.assigned_to)?.full_name || 'Unassigned'
           changes.push(`Assigned: ${lead.assigned_user?.full_name ?? 'Unassigned'} → ${newUser}`)
         }
+        if (data.next_followup_date !== (lead.next_followup_date ?? '')) {
+          changes.push(`Follow-up: ${lead.next_followup_date ?? 'None'} → ${data.next_followup_date || 'Cleared'}`)
+        }
 
         const { error } = await supabase.from('leads').update(payload as never).eq('id', lead.id)
         if (error) throw error
@@ -287,6 +290,18 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
             performed_by: user?.id
           } as never)
         }
+
+        // Log followup_set if date changed
+        if (data.next_followup_date && data.next_followup_date !== (lead.next_followup_date ?? '')) {
+          await supabase.from('lead_activities').insert({
+            lead_id: lead.id,
+            activity_type: 'followup_set',
+            new_value: data.next_followup_date,
+            old_value: lead.next_followup_date ?? null,
+            performed_by: user?.id
+          } as never)
+        }
+
         toast.success('Lead updated successfully')
       } else {
         const { data: { user } } = await supabase.auth.getUser()
@@ -615,7 +630,73 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
         </div>
       )}
 
-      {/* ── Section 6: Custom Fields ── */}
+      {/* ── Section 6: Assigned To ── */}
+      {isVisible('assigned_to') && telecallers.length > 0 && (
+        <div className="bg-teal-50/50 rounded-xl p-4 border border-teal-100">
+          <SectionHeader icon={UserCheck} title="Assign To" color="border-teal-200" />
+          <FieldWrapper label="Assign to Telecaller">
+            <Select
+              value={watch('assigned_to') || ''}
+              onValueChange={(v) => setValue('assigned_to', v || '')}
+            >
+              <SelectTrigger className="bg-white border-teal-200">
+                <SelectValue placeholder="Select telecaller">
+                  {telecallers.find(t => t.id === watch('assigned_to'))?.full_name || lead?.assigned_user?.full_name || 'Select telecaller'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Unassigned</SelectItem>
+                {telecallers.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>{t.full_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FieldWrapper>
+        </div>
+      )}
+
+      {/* ── Section 7: Follow-up & Reminder ── */}
+      {isVisible('next_followup_date') && (
+        <div className="bg-rose-50/50 rounded-xl p-4 border border-rose-100">
+          <SectionHeader icon={Bell} title="Follow-up & Reminder" color="border-rose-200" />
+          <div className="grid grid-cols-2 gap-4">
+            <FieldWrapper label="Next Follow-up Date">
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-rose-400" />
+                <Input
+                  type="date"
+                  {...register('next_followup_date')}
+                  className="pl-9 bg-white border-rose-200 focus:border-rose-400"
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              {watch('next_followup_date') && (
+                <p className="text-xs text-rose-500 mt-1 flex items-center gap-1">
+                  <Bell className="w-3 h-3" />
+                  Reminder set for {new Date(watch('next_followup_date')!).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              )}
+            </FieldWrapper>
+          </div>
+        </div>
+      )}
+
+      {/* ── Section 8: Notes ── */}
+      {isVisible('notes') && (
+        <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-200">
+          <SectionHeader icon={MessageSquare} title="Add a Note" color="border-slate-300" />
+          <FieldWrapper label={lead ? 'Add note (will be saved to activity timeline)' : 'Notes'}>
+            <Textarea
+              {...register('notes')}
+              placeholder="Add any remarks, follow-up notes, or important info..."
+              rows={3}
+              className="bg-white border-slate-200 focus:border-slate-400 resize-none"
+            />
+          </FieldWrapper>
+        </div>
+      )}
+
+      {/* ── Section 9: Custom Fields ── */}
       {customFields.length > 0 && (
         <div className="bg-pink-50/50 rounded-xl p-4 border border-pink-100">
           <SectionHeader icon={Sparkles} title="Additional Fields" color="border-pink-200" />

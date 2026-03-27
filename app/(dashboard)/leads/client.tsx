@@ -69,7 +69,7 @@ export function LeadsClient() {
           sub_section:department_sub_sections(id, name, is_active, created_at, department_id),
           assigned_user:profiles!leads_assigned_to_fkey(id, email, full_name, role, is_active, created_at)
         `)
-        .order('created_at', { ascending: false })
+        .order('updated_at', { ascending: false })
 
       // Telecallers only see their own assigned leads
       if (isTelecaller) {

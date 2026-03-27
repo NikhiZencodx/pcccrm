@@ -100,10 +100,10 @@ export function LeadTable({ leads, isLoading, onRefresh, courses = [], telecalle
     )
   })
 
-  // Sort
+  // Sort by updated_at so recently assigned/updated leads appear first
   const sorted = [...filtered].sort((a, b) => {
-    const aDate = new Date(a.created_at).getTime()
-    const bDate = new Date(b.created_at).getTime()
+    const aDate = new Date((a as any).updated_at ?? a.created_at).getTime()
+    const bDate = new Date((b as any).updated_at ?? b.created_at).getTime()
     return sortDir === 'desc' ? bDate - aDate : aDate - bDate
   })
 
