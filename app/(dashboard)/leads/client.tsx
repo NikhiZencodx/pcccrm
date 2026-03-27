@@ -57,7 +57,7 @@ export function LeadsClient() {
     if (!currentProfile) return
     setLoading(true)
     try {
-      const isTelecaller = currentProfile.role === 'lead'
+      const isTelecaller = currentProfile.role === 'lead' || currentProfile.role === 'telecaller'
 
       let query = supabase
         .from('leads')
@@ -125,7 +125,7 @@ export function LeadsClient() {
           <h1 className="text-xl font-bold text-gray-900">Leads</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage and track all your leads</p>
         </div>
-        {currentProfile?.role !== 'lead' && (
+        {!['lead', 'telecaller'].includes(currentProfile?.role ?? '') && (
           <Button onClick={() => setShowForm(true)} className="gap-1.5">
             <Plus className="w-4 h-4" /> Add Lead
           </Button>
@@ -146,8 +146,8 @@ export function LeadsClient() {
         isLoading={loading}
         onRefresh={fetchLeads}
         courses={courses}
-        telecallers={currentProfile?.role === 'lead' ? [] : telecallers}
-        isTelecaller={currentProfile?.role === 'lead'}
+        telecallers={['lead', 'telecaller'].includes(currentProfile?.role ?? '') ? [] : telecallers}
+        isTelecaller={['lead', 'telecaller'].includes(currentProfile?.role ?? '')}
       />
 
       {/* Add Lead Dialog */}
