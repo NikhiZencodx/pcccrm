@@ -88,10 +88,10 @@ export default function DashboardClient({
         <StatCard label="Conversion Rate" value={conversionRate} color="green" />
       </div>
 
-      {/* Stat cards — row 2 */}
+      {/* Stat cards — row 2 (fee stats hidden for telecallers) */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Fee Collected (Month)" value={fmt(feeCollectedThisMonth)} color="green" />
-        <StatCard label="Outstanding Fees" value={fmt(outstandingFees)} color="amber" />
+        {!isLead && <StatCard label="Fee Collected (Month)" value={fmt(feeCollectedThisMonth)} color="green" />}
+        {!isLead && <StatCard label="Outstanding Fees" value={fmt(outstandingFees)} color="amber" />}
         <StatCard label="Active Students" value={activeStudents} color="blue" />
         <StatCard label="Pending Documents" value={pendingDocs} color={pendingDocs > 0 ? 'amber' : 'default'} />
       </div>
