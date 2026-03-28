@@ -46,7 +46,7 @@ export function LeadsClient() {
 
     Promise.all([
       supabase.from('courses').select('*').eq('is_active', true).order('name'),
-      supabase.from('profiles').select('*').eq('role', 'lead').eq('is_active', true),
+      supabase.from('profiles').select('*').in('role', ['lead', 'telecaller']).eq('is_active', true),
     ]).then(([{ data: c }, { data: t }]) => {
       setCourses(c ?? [])
       setTelecallers(t ?? [])
