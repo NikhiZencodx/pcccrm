@@ -225,7 +225,8 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
   async function onSubmit(data: LeadFormData) {
     setLoading(true)
     try {
-      const { notes, next_followup_time, ...rest } = data
+      // session_id column may not exist in DB — exclude from payload
+      const { notes, next_followup_time, session_id: _sid, ...rest } = data
       const mergedExtra = {
         ...(Object.keys(customValues).length ? customValues : {}),
         ...(next_followup_time ? { followup_time: next_followup_time } : {}),
@@ -240,7 +241,7 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
         sub_course_id: rest.sub_course_id || null,
         department_id: rest.department_id || null,
         sub_section_id: rest.sub_section_id || null,
-        session_id: rest.session_id || null,
+        // session_id excluded — column not in DB yet
         assigned_to: rest.assigned_to || null,
         next_followup_date: rest.next_followup_date || null,
         enrollment_date: rest.enrollment_date || null,
@@ -261,10 +262,7 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
           const newCourse = courses.find(c => c.id === data.course_id)?.name || 'None'
           changes.push(`Course: ${lead.course?.name ?? 'None'} → ${newCourse}`)
         }
-        if (data.session_id !== (lead.session_id ?? '')) {
-          const newSession = sessions.find(s => s.id === data.session_id)?.name || 'None'
-          changes.push(`Session: ${(lead as any).session?.name ?? 'None'} → ${newSession}`)
-        }
+        // session_id diff logging removed — column not in DB
         if (data.assigned_to !== (lead.assigned_to ?? '')) {
           const newUser = telecallers.find(t => t.id === data.assigned_to)?.full_name || 'Unassigned'
           changes.push(`Assigned: ${lead.assigned_user?.full_name ?? 'Unassigned'} → ${newUser}`)
@@ -604,27 +602,7 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
         </div>
       )}
 
-      {/* ── Section 5: Academic Sessions ── */}
-      {isVisible('session_id') && (
-        <div className="bg-indigo-50/50 rounded-xl p-4 border border-indigo-100">
-          <SectionHeader icon={CalendarDays} title="Academic Sessions" color="border-indigo-200" />
-          <div className="grid grid-cols-2 gap-4">
-            <FieldWrapper label="Session">
-              <Select key={`session-${sessions.length}`} value={watch('session_id') || ''} onValueChange={(v) => setValue('session_id', v || '')}>
-                <SelectTrigger className="bg-white border-indigo-200">
-                  <SelectValue placeholder="Select session">
-                    {sessions.find(s => s.id === watch('session_id'))?.name || (lead as any)?.session?.name || 'Select session'}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">No session</SelectItem>
-                  {sessions.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </FieldWrapper>
-          </div>
-        </div>
-      )}
+      {/* Academic Sessions section hidden — session_id column not in leads table yet */}
 
       {/* ── Section 6: Assigned To ── */}
       {isVisible('assigned_to') && telecallers.length > 0 && (
