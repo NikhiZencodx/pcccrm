@@ -413,14 +413,6 @@ export function LeadTable({ leads, isLoading, onRefresh, courses = [], telecalle
                         <DropdownMenuItem onClick={() => setEditLead(lead)}>Update Details</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setTransferLeadIds([lead.id])}>Transfer Lead</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        {(Object.entries(LEAD_STATUS_LABELS) as [LeadStatus, string][])
-                          .filter(([k]) => k !== lead.status)
-                          .map(([k, v]) => (
-                            <DropdownMenuItem key={k} onClick={() => handleStatusChange(lead, k)}>
-                              Mark as {v}
-                            </DropdownMenuItem>
-                          ))}
-                        <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-red-600 focus:text-red-700 focus:bg-red-50"
                           onClick={() => setDeleteLead(lead)}
