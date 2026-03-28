@@ -37,6 +37,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 interface FilterOption { id: string; name: string }
+interface BoardOption { id: string; name: string; department_id: string }
 
 export function BackendListClient() {
   const router = useRouter()
@@ -56,7 +57,8 @@ export function BackendListClient() {
   const [sessions, setSessions] = useState<FilterOption[]>([])
   const [counsellors, setCounsellors] = useState<FilterOption[]>([])
   const [departments, setDepartments] = useState<FilterOption[]>([])
-  const [boards, setBoards] = useState<FilterOption[]>([])
+  const [allBoards, setAllBoards] = useState<BoardOption[]>([])
+  const [boards, setBoards] = useState<BoardOption[]>([])
   const [editStudent, setEditStudent] = useState<Student | null>(null)
   const [deleteStudent, setDeleteStudent] = useState<Student | null>(null)
   const [showAdd, setShowAdd] = useState(false)
@@ -71,16 +73,32 @@ export function BackendListClient() {
         supabase.from('sessions').select('id, name').order('name'),
         supabase.from('profiles').select('id, full_name').in('role', ['lead', 'telecaller']).order('full_name'),
         supabase.from('departments').select('id, name').order('name'),
-        supabase.from('department_sub_sections').select('id, name').order('name'),
+        supabase.from('department_sub_sections').select('id, name, department_id').order('name'),
       ])
       setCourses((coursesRes.data ?? []) as FilterOption[])
       setSessions((sessionsRes.data ?? []) as FilterOption[])
       setCounsellors(((counsellorsRes.data ?? []) as { id: string; full_name: string }[]).map(p => ({ id: p.id, name: p.full_name })))
       setDepartments((deptRes.data ?? []) as FilterOption[])
-      setBoards((boardRes.data ?? []) as FilterOption[])
+      const allB = (boardRes.data ?? []) as BoardOption[]
+      setAllBoards(allB)
+      setBoards(allB)
     }
     loadOptions()
   }, [])
+
+  // Filter boards based on selected department
+  useEffect(() => {
+    if (!departmentFilter) {
+      setBoards(allBoards)
+    } else {
+      const filtered = allBoards.filter(b => b.department_id === departmentFilter)
+      setBoards(filtered)
+      // If current boardFilter doesn't belong to this department, reset it
+      if (boardFilter && !filtered.find(b => b.id === boardFilter)) {
+        setBoardFilter('')
+      }
+    }
+  }, [departmentFilter, allBoards])
 
   const fetchStudents = useCallback(async () => {
     setLoading(true)
@@ -309,7 +327,7 @@ export function BackendListClient() {
       {/* Layer 1: Department + Board */}
       <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border mb-2">
         <span className="text-xs font-semibold text-gray-500 self-center w-full mb-1">Step 1 — Department &amp; Board</span>
-        <Select value={departmentFilter} onValueChange={(v) => setDepartmentFilter(v ?? '')}>
+        <Select value={departmentFilter} onValueChange={(v) => { setDepartmentFilter(v ?? ''); setBoardFilter('') }}>
           <SelectTrigger className="w-44 h-9">
             <span className="text-sm truncate">
               {departmentFilter ? departments.find(d => d.id === departmentFilter)?.name ?? 'All Departments' : 'All Departments'}
