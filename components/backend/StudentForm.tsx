@@ -179,8 +179,7 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
     async function onSubmit(data: StudentFormData) {
         setLoading(true)
         try {
-            const payload = {
-                ...data,
+            const base = {
                 course_id: data.course_id || null,
                 sub_course_id: data.sub_course_id || null,
                 department_id: data.department_id || null,
@@ -194,6 +193,15 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
             const { data: { user } } = await supabase.auth.getUser()
 
             if (student?.id) {
+                // Exclude amount_paid from update — it is managed by the DB payment trigger.
+                // Always round incentive_amount to avoid floating-point drift (e.g. 4999.99 → 5000).
+                const { amount_paid: _ap, ...rest } = data
+                void _ap
+                const payload = {
+                    ...rest,
+                    ...base,
+                    incentive_amount: Math.round((data.incentive_amount ?? 0) * 100) / 100,
+                }
                 const { error } = await supabase.from('students').update({
                     ...payload,
                     updated_at: new Date().toISOString(),
@@ -202,17 +210,22 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
 
                 toast.success('Student profile updated')
             } else {
+                const newPayload = {
+                    ...data,
+                    ...base,
+                    incentive_amount: Math.round((data.incentive_amount ?? 0) * 100) / 100,
+                }
                 const { data: newStudent, error } = await supabase.from('students').insert({
-                    ...payload,
+                    ...newPayload,
                 } as never).select().single()
                 if (error) throw error
 
                 // Record the initial payment for new student
-                if ((data.amount_paid ?? 0) > 0 && newStudent) {
+                if ((newPayload.amount_paid ?? 0) > 0 && newStudent) {
                     await supabase.from('payments').insert({
                         student_id: (newStudent as any).id,
                         lead_id: (newStudent as any).lead_id ?? null,
-                        amount: data.amount_paid,
+                        amount: newPayload.amount_paid,
                         payment_mode: paymentMode,
                         payment_date: paymentDate,
                         receipt_number: paymentReceipt || null,
