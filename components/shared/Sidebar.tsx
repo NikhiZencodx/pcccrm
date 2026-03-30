@@ -5,7 +5,7 @@ import {
   Users, BookOpen, GraduationCap, DollarSign,
   UserCheck, BarChart3, Settings, ChevronLeft,
   ChevronRight, Building2, Home, ListTree,
-  Gift, TrendingUp, X,
+  Gift, TrendingUp, X, Scale,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/useUIStore'
@@ -28,6 +28,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Courses', href: '/settings/courses', icon: BookOpen, roles: ['admin'] },
   { label: 'Departments', href: '/settings/departments', icon: Building2, roles: ['admin'] },
   { label: 'Sessions', href: '/settings/sessions', icon: ListTree, roles: ['admin'] },
+  { label: 'Litigation', href: '/litigation', icon: Scale, roles: ['admin'] },
   { label: 'Incentive', href: '/incentive', icon: Gift, roles: ['lead'] },
   { label: 'Performance', href: '/performance', icon: TrendingUp, roles: ['lead'] },
   { label: 'Settings', href: '/settings/users', icon: Settings, roles: ['admin'] },
