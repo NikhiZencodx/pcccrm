@@ -486,7 +486,7 @@ export function LitigationClient({
               <label className="text-xs font-semibold text-gray-600 mb-1 block">Board / University</label>
               <Select
                 value={form.sub_section_id}
-                onValueChange={(v) => setForm((f) => ({ ...f, sub_section_id: v }))}
+                onValueChange={(v) => setForm((f) => ({ ...f, sub_section_id: v ?? '' }))}
                 disabled={!form.department_id}
               >
                 <SelectTrigger>
@@ -504,7 +504,7 @@ export function LitigationClient({
             {/* Session */}
             <div>
               <label className="text-xs font-semibold text-gray-600 mb-1 block">Session</label>
-              <Select value={form.session_id} onValueChange={(v) => setForm((f) => ({ ...f, session_id: v }))}>
+              <Select value={form.session_id} onValueChange={(v) => setForm((f) => ({ ...f, session_id: v ?? '' }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Session select karo" />
                 </SelectTrigger>
