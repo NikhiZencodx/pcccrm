@@ -68,11 +68,6 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
     const [sessions, setSessions] = useState<Session[]>([])
     const [counsellors, setCounsellors] = useState<Profile[]>([])
     const [loading, setLoading] = useState(false)
-    // Payment fields for new payment entry
-    const [paymentAmount, setPaymentAmount] = useState('')
-    const [paymentMode, setPaymentMode] = useState('cash')
-    const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0])
-    const [paymentReceipt, setPaymentReceipt] = useState('')
     const supabase = createClient()
 
     const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<StudentFormData>({
@@ -102,79 +97,92 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
     const selectedDeptId = watch('department_id')
 
     useEffect(() => {
+        let isMounted = true
         async function load() {
-            const [{ data: c }, { data: p }, { data: d }, { data: s }] = await Promise.all([
-                supabase.from('courses').select('*').order('name'),
-                supabase.from('profiles').select('*').order('full_name'),
-                supabase.from('departments').select('*').order('name'),
-                supabase.from('sessions').select('*').order('name', { ascending: false }),
-            ])
+            setLoading(true)
+            try {
+                const [{ data: c }, { data: p }, { data: d }, { data: s }] = await Promise.all([
+                    supabase.from('courses').select('*').order('name'),
+                    supabase.from('profiles').select('*').order('full_name'),
+                    supabase.from('departments').select('*').order('name'),
+                    supabase.from('sessions').select('*').order('name', { ascending: false }),
+                ])
 
-            const cds = (c ?? []) as any[]
-            if (student?.course && !cds.find(x => x.id === student.course?.id)) {
-                cds.push(student.course)
-            }
-            const pds = (p ?? []) as any[]
-            if (student?.counsellor && !pds.find(x => x.id === student.counsellor?.id)) {
-                pds.push(student.counsellor)
-            }
-            setCourses([...cds])
-            setCounsellors([...pds])
-            setDepartments(d ?? [])
-            setSessions(s ?? [])
+                if (!isMounted) return
+                setCourses((c ?? []) as any[])
+                setCounsellors((p ?? []) as any[])
+                setDepartments(d ?? [])
+                setSessions(s ?? [])
 
-            reset({
-                full_name: student?.full_name ?? '',
-                guardian_name: student?.guardian_name ?? '',
-                phone: student?.phone ?? '',
-                email: student?.email ?? '',
-                city: student?.city ?? '',
-                enrollment_date: student?.enrollment_date ?? '',
-                course_id: student?.course_id ?? (student as any)?.course?.id ?? '',
-                sub_course_id: student?.sub_course_id ?? (student as any)?.sub_course?.id ?? '',
-                department_id: student?.department_id ?? (student as any)?.department?.id ?? '',
-                sub_section_id: student?.sub_section_id ?? (student as any)?.sub_section?.id ?? '',
-                session_id: student?.session_id ?? (student as any)?.session?.id ?? '',
-                assigned_counsellor: student?.assigned_counsellor ?? '',
-                status: (student?.status as any) || 'active',
-                mode: student?.mode ?? '',
-                incentive_amount: student?.incentive_amount ?? 0,
-                total_fee: student?.total_fee ?? 0,
-                amount_paid: student?.amount_paid ?? 0,
-            } as any)
+                if (student?.id) {
+                    reset({
+                        full_name: student?.full_name ?? '',
+                        guardian_name: student?.guardian_name ?? '',
+                        phone: student?.phone ?? '',
+                        email: student?.email ?? '',
+                        city: student?.city ?? '',
+                        enrollment_date: student?.enrollment_date ?? '',
+                        course_id: student?.course_id ?? (student as any)?.course?.id ?? '',
+                        sub_course_id: student?.sub_course_id ?? (student as any)?.sub_course?.id ?? '',
+                        department_id: student?.department_id ?? (student as any)?.department?.id ?? '',
+                        sub_section_id: student?.sub_section_id ?? (student as any)?.sub_section?.id ?? '',
+                        session_id: student?.session_id ?? (student as any)?.session?.id ?? '',
+                        assigned_counsellor: student?.assigned_counsellor ?? '',
+                        status: (student?.status as any) || 'active',
+                        mode: student?.mode ?? '',
+                        incentive_amount: student?.incentive_amount ?? 0,
+                        total_fee: student?.total_fee ?? 0,
+                        amount_paid: student?.amount_paid ?? 0,
+                    } as any)
+                }
+            } catch (err) {
+                console.error('Error loading form options:', err)
+            } finally {
+                if (isMounted) setLoading(false)
+            }
         }
         load()
-    }, [student, reset])
+        return () => { isMounted = false }
+    }, [student?.id, reset])
 
     useEffect(() => {
         if (!selectedCourseId) { setSubCourses([]); return }
+        const isEditingOriginalCourse = student?.id && selectedCourseId === (student?.course_id || (student as any)?.course?.id)
+        
         supabase.from('sub_courses').select('*').eq('course_id', selectedCourseId)
             .then(({ data }) => {
                 const sds = (data ?? []) as any[]
-                if (student?.sub_course && student.sub_course.course_id === selectedCourseId) {
+                if (isEditingOriginalCourse && student?.sub_course) {
                     if (!sds.find(x => x.id === student.sub_course?.id)) sds.push(student.sub_course)
                 }
                 setSubCourses([...sds])
-                if (selectedCourseId === (student?.course_id || student?.course?.id)) {
-                    setValue('sub_course_id', (student?.sub_course_id || (student as any)?.sub_course?.id || '') as any)
+                
+                // Only set value if it's the original student course we are initializing
+                if (isEditingOriginalCourse) {
+                    const originalSubId = student?.sub_course_id || (student as any)?.sub_course?.id
+                    if (originalSubId) setValue('sub_course_id', originalSubId as any)
                 }
             })
-    }, [selectedCourseId, student, setValue])
+    }, [selectedCourseId, student?.id, setValue])
 
     useEffect(() => {
         if (!selectedDeptId) { setSubSections([]); return }
+        const isEditingOriginalDept = student?.id && selectedDeptId === (student?.department_id || (student as any)?.department?.id)
+
         supabase.from('department_sub_sections').select('*').eq('department_id', selectedDeptId)
             .then(({ data }) => {
                 const ssds = (data ?? []) as any[]
-                if (student?.sub_section && student.sub_section.department_id === selectedDeptId) {
+                if (isEditingOriginalDept && student?.sub_section) {
                     if (!ssds.find(x => x.id === student.sub_section?.id)) ssds.push(student.sub_section)
                 }
                 setSubSections([...ssds])
-                if (selectedDeptId === (student?.department_id || student?.department?.id)) {
-                    setValue('sub_section_id', (student?.sub_section_id || (student as any)?.sub_section?.id || '') as any)
+
+                if (isEditingOriginalDept) {
+                    const originalSubId = student?.sub_section_id || (student as any)?.sub_section?.id
+                    if (originalSubId) setValue('sub_section_id', originalSubId as any)
                 }
             })
-    }, [selectedDeptId, student, setValue])
+    }, [selectedDeptId, student?.id, setValue])
 
     async function onSubmit(data: StudentFormData) {
         setLoading(true)
@@ -220,19 +228,7 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
                 } as never).select().single()
                 if (error) throw error
 
-                // Record the initial payment for new student
-                if ((newPayload.amount_paid ?? 0) > 0 && newStudent) {
-                    await supabase.from('payments').insert({
-                        student_id: (newStudent as any).id,
-                        lead_id: (newStudent as any).lead_id ?? null,
-                        amount: newPayload.amount_paid,
-                        payment_mode: paymentMode,
-                        payment_date: paymentDate,
-                        receipt_number: paymentReceipt || null,
-                        notes: 'Initial payment during enrollment',
-                        recorded_by: user?.id,
-                    } as never)
-                }
+                // Initial payment logic removed as per user request — only total_fee (Discussed Amount) is managed here.
                 toast.success('Student successfully added')
             }
 
@@ -364,10 +360,10 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
                 <SectionHeader icon={Building2} title="Department & University" color="border-amber-200" />
                 <div className="grid grid-cols-2 gap-4">
                     <FieldWrapper label="Department">
-                        <Select key={departments.length} value={watch('department_id') || ''} onValueChange={(v) => { setValue('department_id', v || ''); setValue('sub_section_id', '') }}>
+                        <Select value={watch('department_id') || ''} onValueChange={(v) => { setValue('department_id', v || ''); setValue('sub_section_id', '') }}>
                             <SelectTrigger className="bg-white border-amber-200">
                                 <SelectValue placeholder="Select department">
-                                    {departments.find(d => d.id === watch('department_id'))?.name || (student as any)?.department?.name}
+                                    {departments.find(d => d.id === watch('department_id'))?.name}
                                 </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
@@ -378,10 +374,10 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
                     </FieldWrapper>
 
                     <FieldWrapper label="University/Board">
-                        <Select key={subSections.length} value={watch('sub_section_id') || ''} onValueChange={(v) => setValue('sub_section_id', v || '')} disabled={!selectedDeptId}>
+                        <Select value={watch('sub_section_id') || ''} onValueChange={(v) => setValue('sub_section_id', v || '')} disabled={!selectedDeptId}>
                             <SelectTrigger className="bg-white border-amber-200 disabled:opacity-50">
                                 <SelectValue placeholder="Select university/board">
-                                    {subSections.find(s => s.id === watch('sub_section_id'))?.name || (student as any)?.sub_section?.name}
+                                    {subSections.find(s => s.id === watch('sub_section_id'))?.name}
                                 </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
@@ -397,10 +393,10 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
                 <SectionHeader icon={BookOpen} title="Academic Details" color="border-emerald-200" />
                 <div className="grid grid-cols-2 gap-4">
                     <FieldWrapper label="Session">
-                        <Select key={sessions.length} value={watch('session_id') || ''} onValueChange={(v) => setValue('session_id', v || '')}>
+                        <Select value={watch('session_id') || ''} onValueChange={(v) => setValue('session_id', v || '')}>
                             <SelectTrigger className="bg-white border-emerald-200">
                                 <SelectValue placeholder="Select session">
-                                    {sessions.find(s => s.id === watch('session_id'))?.name || (student as any)?.session?.name}
+                                    {sessions.find(s => s.id === watch('session_id'))?.name}
                                 </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
@@ -411,10 +407,10 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
                     </FieldWrapper>
 
                     <FieldWrapper label="Course">
-                        <Select key={courses.length} value={watch('course_id') || ''} onValueChange={(v) => { setValue('course_id', v || ''); setValue('sub_course_id', '') }}>
+                        <Select value={watch('course_id') || ''} onValueChange={(v) => { setValue('course_id', v || ''); setValue('sub_course_id', '') }}>
                             <SelectTrigger className="bg-white border-emerald-200">
                                 <SelectValue placeholder="Select course">
-                                    {courses.find(c => c.id === watch('course_id'))?.name || (student as any)?.course?.name}
+                                    {courses.find(c => c.id === watch('course_id'))?.name}
                                 </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
@@ -425,10 +421,10 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
                     </FieldWrapper>
 
                     <FieldWrapper label="Standard">
-                        <Select key={subCourses.length} value={watch('sub_course_id') || ''} onValueChange={(v) => setValue('sub_course_id', v || '')} disabled={!selectedCourseId}>
+                        <Select value={watch('sub_course_id') || ''} onValueChange={(v) => setValue('sub_course_id', v || '')} disabled={!selectedCourseId}>
                             <SelectTrigger className="bg-white border-emerald-200 disabled:opacity-50">
                                 <SelectValue placeholder="Select standard">
-                                    {subCourses.find(s => s.id === watch('sub_course_id'))?.name || (student as any)?.sub_course?.name}
+                                    {subCourses.find(s => s.id === watch('sub_course_id'))?.name}
                                 </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
@@ -443,60 +439,12 @@ export function StudentForm({ student, onSuccess, onCancel }: StudentFormProps) 
             <div className="bg-orange-50/50 rounded-xl p-4 border border-orange-100">
                 <SectionHeader icon={IndianRupee} title="Fees Information" color="border-orange-200" />
                 <div className="grid grid-cols-2 gap-4">
-                    <FieldWrapper label="Total Fee">
+                    <FieldWrapper label="Discussed Amount">
                         <div className="relative">
                             <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-400" />
                             <Input type="number" {...register('total_fee', { valueAsNumber: true })} className="pl-9 bg-white border-orange-200" />
                         </div>
                     </FieldWrapper>
-
-                    <FieldWrapper label="Amount Paid (so far)">
-                        <div className="relative">
-                            <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-400" />
-                            <Input
-                                type="number"
-                                value={student?.id ? (student.amount_paid ?? 0) : undefined}
-                                readOnly={!!student?.id}
-                                {...(!student?.id ? register('amount_paid', { valueAsNumber: true }) : {})}
-                                className="pl-9 bg-white border-orange-200 read-only:bg-gray-50 read-only:text-gray-500"
-                            />
-                        </div>
-                    </FieldWrapper>
-
-                    <FieldWrapper label="Payment Mode">
-                        <Select value={paymentMode} onValueChange={(v) => setPaymentMode(v ?? 'cash')}>
-                            <SelectTrigger className="bg-white border-orange-200">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {Object.entries(PAYMENT_MODE_LABELS).map(([k, v]) => (
-                                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </FieldWrapper>
-
-                    {!student?.id && (
-                        <>
-                            <FieldWrapper label="Payment Date">
-                                <Input
-                                    type="date"
-                                    value={paymentDate}
-                                    onChange={(e) => setPaymentDate(e.target.value)}
-                                    className="bg-white border-orange-200"
-                                />
-                            </FieldWrapper>
-
-                            <FieldWrapper label="Receipt Number">
-                                <Input
-                                    placeholder="Optional"
-                                    value={paymentReceipt}
-                                    onChange={(e) => setPaymentReceipt(e.target.value)}
-                                    className="bg-white border-orange-200"
-                                />
-                            </FieldWrapper>
-                        </>
-                    )}
                 </div>
             </div>
 

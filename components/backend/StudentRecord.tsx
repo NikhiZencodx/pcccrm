@@ -31,6 +31,7 @@ export function StudentRecord({ student }: StudentRecordProps) {
         <div><p className="text-gray-500">Course</p><p className="font-medium">{student.course?.name ?? '-'}</p></div>
         <div><p className="text-gray-500">Sub-course</p><p className="font-medium">{student.sub_course?.name ?? '-'}</p></div>
         <div><p className="text-gray-500">Counsellor</p><p className="font-medium">{student.counsellor?.full_name ?? '-'}</p></div>
+        <div><p className="text-gray-500">Discussed Amount</p><p className="font-medium">{student.total_fee ? `₹${student.total_fee.toLocaleString('en-IN')}` : '-'}</p></div>
         <div>
           <p className="text-gray-500">Enrollment Date</p>
           <p className="font-medium">{student.enrollment_date ? format(new Date(student.enrollment_date), 'dd MMM yyyy') : '-'}</p>

@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { User, Phone, Mail, MapPin, Tag, BookOpen, UserCheck, Building2, Calendar, FileText, CalendarDays, Bell, MessageSquare } from 'lucide-react'
+import { User, Phone, Mail, MapPin, Tag, BookOpen, UserCheck, Building2, Calendar, FileText, CalendarDays, Bell, MessageSquare, IndianRupee } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -136,91 +136,96 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
   const selectedCourseId = watch('course_id')
   const selectedDeptId = watch('department_id')
 
-  useEffect(() => {
-    async function load() {
-      const [{ data: c }, { data: t }, { data: ff }, { data: d }, { data: s }] = await Promise.all([
-        supabase.from('courses').select('*').order('name'),
-        supabase.from('profiles').select('*').in('role', ['lead', 'telecaller']).eq('is_active', true).order('full_name'),
-        supabase.from('lead_form_fields').select('*').eq('is_active', true).order('display_order'),
-        supabase.from('departments').select('*').order('name'),
-        supabase.from('sessions').select('*').order('created_at', { ascending: false }),
-      ])
+    useEffect(() => {
+        let isMounted = true
+        async function load() {
+            setLoading(true)
+            try {
+                const [{ data: c }, { data: t }, { data: ff }, { data: d }, { data: s }] = await Promise.all([
+                    supabase.from('courses').select('*').order('name'),
+                    supabase.from('profiles').select('*').in('role', ['lead', 'telecaller']).eq('is_active', true).order('full_name'),
+                    supabase.from('lead_form_fields').select('*').eq('is_active', true).order('display_order'),
+                    supabase.from('departments').select('*').order('name'),
+                    supabase.from('sessions').select('*').order('created_at', { ascending: false }),
+                ])
 
-      const coursesData = (c ?? []) as any[]
-      const departmentsData = (d ?? []) as any[]
-      const sessionsData = (s ?? []) as any[]
+                if (!isMounted) return
+                setCourses((c ?? []) as any[])
+                setTelecallers(t ?? [])
+                setFormFields(ff ?? [])
+                setDepartments((d ?? []) as any[])
+                setSessions((s ?? []) as any[])
 
-      if (lead) {
-        const lc = (lead as any).course
-        if (lc && !coursesData.find((x: any) => x.id === lc.id)) coursesData.push(lc)
-        const ld = (lead as any).department
-        if (ld && !departmentsData.find((x: any) => x.id === ld.id)) departmentsData.push(ld)
-        const ls = (lead as any).session
-        if (ls && !sessionsData.find((x: any) => x.id === ls.id)) sessionsData.push(ls)
-      }
-
-      setCourses([...coursesData] as any)
-      setTelecallers(t ?? [])
-      setFormFields(ff ?? [])
-      setDepartments([...departmentsData] as any)
-      setSessions([...sessionsData] as any)
-
-      if (lead) {
-        reset({
-          full_name: lead.full_name,
-          phone: lead.phone,
-          email: lead.email ?? '',
-          city: lead.city ?? '',
-          state: lead.state ?? '',
-          course_id: lead.course_id ?? (lead as any).course?.id ?? '',
-          sub_course_id: lead.sub_course_id ?? (lead as any).sub_course?.id ?? '',
-          department_id: lead.department_id ?? (lead as any).department?.id ?? '',
-          sub_section_id: lead.sub_section_id ?? (lead as any).sub_section?.id ?? '',
-          session_id: lead.session_id ?? (lead as any).session?.id ?? '',
-          status: sanitizeStatus(lead.status),
-          source: lead.source,
-          assigned_to: lead.assigned_to ?? '',
-          next_followup_date: lead.next_followup_date ?? '',
-          next_followup_time: (lead as any).extra_data?.followup_time ?? '',
-          enrollment_date: lead.enrollment_date ?? '',
-          total_fee: lead.total_fee ?? undefined,
-          amount_paid: lead.amount_paid ?? 0,
-          mode: lead.mode ?? '',
-        } as any)
-      }
-    }
-    load()
-  }, [lead, reset])
-
-  useEffect(() => {
-    if (!selectedCourseId) { setSubCourses([]); return }
-    supabase.from('sub_courses').select('*').eq('course_id', selectedCourseId)
-      .then(({ data }) => {
-        const subData = (data ?? []) as any[]
-        if (lead && (lead as any).sub_course && (lead as any).sub_course.course_id === selectedCourseId) {
-          if (!subData.find((x: any) => x.id === (lead as any).sub_course.id)) subData.push((lead as any).sub_course)
+                if (lead?.id) {
+                    reset({
+                        full_name: lead.full_name,
+                        phone: lead.phone,
+                        email: lead.email ?? '',
+                        city: lead.city ?? '',
+                        state: lead.state ?? '',
+                        course_id: lead.course_id ?? (lead as any).course?.id ?? '',
+                        sub_course_id: lead.sub_course_id ?? (lead as any).sub_course?.id ?? '',
+                        department_id: lead.department_id ?? (lead as any).department?.id ?? '',
+                        sub_section_id: lead.sub_section_id ?? (lead as any).sub_section?.id ?? '',
+                        session_id: lead.session_id ?? (lead as any).session?.id ?? '',
+                        status: sanitizeStatus(lead.status),
+                        source: lead.source,
+                        assigned_to: lead.assigned_to ?? '',
+                        next_followup_date: lead.next_followup_date ?? '',
+                        next_followup_time: (lead as any).extra_data?.followup_time ?? '',
+                        enrollment_date: lead.enrollment_date ?? '',
+                        total_fee: lead.total_fee ?? undefined,
+                        amount_paid: lead.amount_paid ?? 0,
+                        mode: lead.mode ?? '',
+                    } as any)
+                }
+            } catch (err) {
+                console.error('Error loading lead form data:', err)
+            } finally {
+                if (isMounted) setLoading(false)
+            }
         }
-        setSubCourses([...subData])
-        if (lead && selectedCourseId === (lead.course_id || (lead as any).course?.id)) {
-          setValue('sub_course_id', lead.sub_course_id ?? (lead as any).sub_course?.id ?? '' as any)
-        }
-      })
-  }, [selectedCourseId, lead, setValue])
+        load()
+        return () => { isMounted = false }
+    }, [lead?.id, reset])
 
-  useEffect(() => {
-    if (!selectedDeptId) { setSubSections([]); return }
-    supabase.from('department_sub_sections').select('*').eq('department_id', selectedDeptId)
-      .then(({ data }) => {
-        const subSecData = (data ?? []) as any[]
-        if (lead && (lead as any).sub_section && (lead as any).sub_section.department_id === selectedDeptId) {
-          if (!subSecData.find((x: any) => x.id === (lead as any).sub_section.id)) subSecData.push((lead as any).sub_section)
-        }
-        setSubSections([...subSecData] as any)
-        if (lead && selectedDeptId === (lead.department_id || (lead as any).department?.id)) {
-          setValue('sub_section_id', lead.sub_section_id ?? (lead as any).sub_section?.id ?? '' as any)
-        }
-      })
-  }, [selectedDeptId, lead, setValue])
+    useEffect(() => {
+        if (!selectedCourseId) { setSubCourses([]); return }
+        const isEditingOriginalCourse = lead?.id && selectedCourseId === (lead.course_id || (lead as any).course?.id)
+        
+        supabase.from('sub_courses').select('*').eq('course_id', selectedCourseId)
+            .then(({ data }) => {
+                const subData = (data ?? []) as any[]
+                if (isEditingOriginalCourse && (lead as any).sub_course) {
+                    if (!subData.find((x: any) => x.id === (lead as any).sub_course.id)) subData.push((lead as any).sub_course)
+                }
+                setSubCourses([...subData])
+                
+                if (isEditingOriginalCourse) {
+                    const originalSubId = lead.sub_course_id ?? (lead as any).sub_course?.id
+                    if (originalSubId) setValue('sub_course_id', originalSubId as any)
+                }
+            })
+    }, [selectedCourseId, lead?.id, setValue])
+
+    useEffect(() => {
+        if (!selectedDeptId) { setSubSections([]); return }
+        const isEditingOriginalDept = lead?.id && selectedDeptId === (lead.department_id || (lead as any).department?.id)
+
+        supabase.from('department_sub_sections').select('*').eq('department_id', selectedDeptId)
+            .then(({ data }) => {
+                const subSecData = (data ?? []) as any[]
+                if (isEditingOriginalDept && (lead as any).sub_section) {
+                    if (!subSecData.find((x: any) => x.id === (lead as any).sub_section.id)) subSecData.push((lead as any).sub_section)
+                }
+                setSubSections([...subSecData] as any)
+                
+                if (isEditingOriginalDept) {
+                    const originalSubId = lead.sub_section_id ?? (lead as any).sub_section?.id
+                    if (originalSubId) setValue('sub_section_id', originalSubId as any)
+                }
+            })
+    }, [selectedDeptId, lead?.id, setValue])
 
   async function onSubmit(data: LeadFormData) {
     setLoading(true)
@@ -245,8 +250,8 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
         assigned_to: rest.assigned_to || null,
         next_followup_date: rest.next_followup_date || null,
         enrollment_date: rest.enrollment_date || null,
+        // amount_paid update removed as per user request — only total_fee (Discussed Amount) is managed here
         total_fee: rest.total_fee ?? null,
-        amount_paid: rest.amount_paid ?? 0,
         extra_data: Object.keys(mergedExtra).length ? mergedExtra : null,
       }
 
@@ -276,18 +281,7 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
 
         const { data: { user } } = await supabase.auth.getUser()
 
-        // Record the payment difference if any
-        const diff = (data.amount_paid ?? 0) - (lead.amount_paid ?? 0)
-        if (diff > 0) {
-          await supabase.from('payments').insert({
-            lead_id: lead.id,
-            amount: diff,
-            payment_mode: 'cash',
-            payment_date: new Date().toISOString().split('T')[0],
-            notes: 'Payment adjustment via lead form',
-            recorded_by: user?.id,
-          } as never)
-        }
+        // Payment adjustment via LeadForm removed — use Finance section for payments.
 
         if (changes.length > 0) {
           await supabase.from('lead_activities').insert({
@@ -324,17 +318,7 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
         const { data: newLead, error } = await supabase.from('leads').insert({ ...payload, created_by: user?.id } as never).select().single()
         if (error) throw error
 
-        // Record the initial payment for new lead
-        if ((data.amount_paid ?? 0) > 0 && newLead) {
-          await supabase.from('payments').insert({
-            lead_id: (newLead as any).id,
-            amount: data.amount_paid,
-            payment_mode: 'cash',
-            payment_date: new Date().toISOString().split('T')[0],
-            notes: 'Initial payment during lead creation',
-            recorded_by: user?.id,
-          } as never)
-        }
+        // Initial payment via LeadForm removed — use Finance section for payments.
 
         // Log creation activity
         if (newLead) {
@@ -522,10 +506,10 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
           <div className="grid grid-cols-2 gap-4">
             {isVisible('department_id') && (
               <FieldWrapper label="Department">
-                <Select key={`dept-${departments.length}`} value={watch('department_id') || ''} onValueChange={(v) => { setValue('department_id', v || ''); setValue('sub_section_id', '' as any) }}>
+                <Select value={watch('department_id') || ''} onValueChange={(v) => { setValue('department_id', v || ''); setValue('sub_section_id', '' as any) }}>
                   <SelectTrigger className="bg-white border-amber-200">
                     <SelectValue placeholder="Select department">
-                      {departments.find(d => d.id === watch('department_id'))?.name || (lead as any)?.department?.name || 'Select department'}
+                      {departments.find(d => d.id === watch('department_id'))?.name}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -539,14 +523,13 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
             {isVisible('sub_section_id') && (
               <FieldWrapper label="University/Board">
                 <Select
-                  key={`subsec-${subSections.length}`}
                   value={watch('sub_section_id') || ''}
                   onValueChange={(v) => setValue('sub_section_id', v as any)}
                   disabled={!selectedDeptId}
                 >
                   <SelectTrigger className="bg-white border-amber-200 disabled:opacity-50">
                     <SelectValue placeholder={selectedDeptId ? 'Select university/board' : 'Select department first'}>
-                      {subSections.find(s => s.id === watch('sub_section_id'))?.name || (lead as any)?.sub_section?.name || 'Select university/board'}
+                      {subSections.find(s => s.id === watch('sub_section_id'))?.name}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -567,10 +550,10 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
           <div className="grid grid-cols-2 gap-4">
             {isVisible('course_id') && (
               <FieldWrapper label="Course">
-                <Select key={`course-${courses.length}`} value={watch('course_id') || ''} onValueChange={(v) => { setValue('course_id', v || ''); setValue('sub_course_id', '' as any) }}>
+                <Select value={watch('course_id') || ''} onValueChange={(v) => { setValue('course_id', v || ''); setValue('sub_course_id', '' as any) }}>
                   <SelectTrigger className="bg-white border-emerald-200">
                     <SelectValue placeholder="Select course">
-                      {courses.find(c => c.id === watch('course_id'))?.name || (lead as any)?.course?.name || 'Select course'}
+                      {courses.find(c => c.id === watch('course_id'))?.name}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -584,14 +567,13 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
             {isVisible('sub_course_id') && (
               <FieldWrapper label="Standard">
                 <Select
-                  key={`subcourse-${subCourses.length}`}
                   value={watch('sub_course_id') || ''}
                   onValueChange={(v) => setValue('sub_course_id', v as any)}
                   disabled={!selectedCourseId}
                 >
                   <SelectTrigger className="bg-white border-emerald-200 disabled:opacity-50">
                     <SelectValue placeholder={selectedCourseId ? 'Select standard' : 'Select course first'}>
-                      {subCourses.find(s => s.id === watch('sub_course_id'))?.name || (lead as any)?.sub_course?.name || 'Select standard'}
+                      {subCourses.find(s => s.id === watch('sub_course_id'))?.name}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -599,6 +581,28 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
                     {subCourses.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
+              </FieldWrapper>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Section 5: Budget & Fees ── */}
+      {(isVisible('total_fee')) && (
+        <div className="bg-orange-50/50 rounded-xl p-4 border border-orange-100">
+          <SectionHeader icon={IndianRupee} title="Budget & Fees" color="border-orange-200" />
+          <div className="grid grid-cols-2 gap-4">
+            {isVisible('total_fee') && (
+              <FieldWrapper label="Discussed Amount (Negotiated Fee)">
+                <div className="relative">
+                  <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-400" />
+                  <Input 
+                    type="number" 
+                    {...register('total_fee', { valueAsNumber: true })} 
+                    placeholder="e.g. 50000"
+                    className="pl-9 bg-white border-orange-200 focus:border-orange-400" 
+                  />
+                </div>
               </FieldWrapper>
             )}
           </div>

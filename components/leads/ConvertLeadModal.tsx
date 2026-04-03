@@ -157,7 +157,7 @@ export function ConvertLeadModal({ open, onClose, lead, onSuccess }: ConvertLead
           <div className="pt-2 border-t border-gray-100"></div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-semibold text-gray-600">Total Course Fee</Label>
+            <Label className="text-xs font-semibold text-gray-600">Fixed/Discussed Amount</Label>
             <div className="relative">
               <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
@@ -171,7 +171,7 @@ export function ConvertLeadModal({ open, onClose, lead, onSuccess }: ConvertLead
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-semibold text-gray-600">Amount Paid Now</Label>
+            <Label className="text-xs font-semibold text-gray-600">Initial Deposit</Label>
             <div className="relative">
               <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input

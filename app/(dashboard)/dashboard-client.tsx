@@ -16,6 +16,8 @@ interface TopTelecaller {
   id: string
   full_name: string
   conversions: number
+  calls_made: number
+  conversion_rate: string
 }
 
 interface IncentiveRow {
@@ -148,17 +150,55 @@ export default function DashboardClient({
           {topTelecallers.length === 0 ? (
             <p className="text-xs text-muted-foreground">No data yet</p>
           ) : (
-            <ol className="space-y-2">
+            <ul className="space-y-4">
               {topTelecallers.map((tc, i) => (
-                <li key={tc.id} className="flex items-center gap-2 text-sm">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-xs font-bold">
+                <li key={tc.id} className="group relative flex items-center gap-4 p-2 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
+                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold shadow-sm ${
+                    i === 0 ? 'bg-amber-100 text-amber-700 ring-2 ring-amber-50' : 
+                    i === 1 ? 'bg-slate-100 text-slate-700' :
+                    i === 2 ? 'bg-orange-50 text-orange-700' :
+                    'bg-muted text-muted-foreground'
+                  }`}>
                     {i + 1}
-                  </span>
-                  <span className="flex-1">{tc.full_name}</span>
-                  <span className="text-xs font-semibold text-green-700">{tc.conversions} conv.</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <p className="font-semibold text-sm truncate text-slate-800">{tc.full_name}</p>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm ${
+                        parseFloat(tc.conversion_rate) > 20 ? 'bg-emerald-100 text-emerald-700' :
+                        parseFloat(tc.conversion_rate) > 10 ? 'bg-blue-100 text-blue-700' :
+                        'bg-slate-100 text-slate-600'
+                      }`}>
+                        {tc.conversion_rate}%
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-[11px] text-slate-500">
+                      <div className="flex items-center gap-1">
+                        <span className="font-bold text-slate-900">{tc.conversions}</span>
+                        <span className="text-slate-400 text-[10px]">Conversions</span>
+                      </div>
+                      <div className="w-1 h-1 rounded-full bg-slate-300" />
+                      <div className="flex items-center gap-1">
+                        <span className="font-bold text-slate-900">{tc.calls_made}</span>
+                        <span className="text-slate-400 text-[10px]">Calls</span>
+                      </div>
+                    </div>
+                    
+                    {/* Subtle progress bar for conversion rate */}
+                    <div className="mt-2 h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full transition-all duration-500 rounded-full ${
+                          parseFloat(tc.conversion_rate) > 20 ? 'bg-emerald-500' :
+                          parseFloat(tc.conversion_rate) > 10 ? 'bg-blue-500' :
+                          'bg-slate-400'
+                        }`}
+                        style={{ width: `${Math.min(100, parseFloat(tc.conversion_rate))}%` }}
+                      />
+                    </div>
+                  </div>
                 </li>
               ))}
-            </ol>
+            </ul>
           )}
         </div>
       </div>

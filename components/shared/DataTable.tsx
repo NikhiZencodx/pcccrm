@@ -16,7 +16,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useState } from 'react'
+import { useState, Fragment } from 'react'
 
 interface DataTableProps<T> {
   data: T[]
@@ -59,7 +59,7 @@ export function DataTable<T>({ data, columns, isLoading, onRowClick, onSelection
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
-            <>
+            <Fragment key={headerGroup.id}>
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TableHead key={header.id}>
@@ -86,7 +86,7 @@ export function DataTable<T>({ data, columns, isLoading, onRowClick, onSelection
                   ))}
                 </TableRow>
               )}
-            </>
+            </Fragment>
           ))}
         </TableHeader>
         <TableBody>

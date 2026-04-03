@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import {
   MoreHorizontal, Search, ChevronLeft, ChevronRight,
-  ChevronDown, X, SlidersHorizontal, ArrowUpDown, Phone, MessageCircle
+  ChevronDown, X, SlidersHorizontal, ArrowUpDown, Phone, MessageCircle, Download
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -184,6 +184,41 @@ export function LeadTable({ leads, isLoading, onRefresh, courses = [], telecalle
     })
   }
 
+  async function handleExport() {
+    if (sorted.length === 0) return
+
+    const headers = [
+      'Full Name', 'Phone', 'Email', 'City', 'Status', 'Source', 
+      'Mode', 'Department', 'Course', 'Sub-Course', 'Assigned To', 'Date Added'
+    ]
+
+    const csvRows = sorted.map(l => [
+      l.full_name,
+      l.phone,
+      l.email ?? '',
+      l.city ?? '',
+      LEAD_STATUS_LABELS[l.status] ?? l.status,
+      LEAD_SOURCE_LABELS[l.source] ?? l.source,
+      l.mode ?? '',
+      l.department?.name ?? '',
+      l.course?.name ?? '',
+      l.sub_course?.name ?? '',
+      l.assigned_user?.full_name ?? 'Unassigned',
+      format(new Date(l.created_at), 'dd MMM yyyy')
+    ].map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+
+    const csvContent = [headers.join(','), ...csvRows].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', `leads_export_${format(new Date(), 'yyyy-MM-dd')}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   if (!mounted) return <div className="bg-white rounded-xl border border-gray-200 shadow-sm min-h-[400px] animate-pulse" />
 
   return (
@@ -335,6 +370,16 @@ export function LeadTable({ leads, isLoading, onRefresh, courses = [], telecalle
               <ArrowUpDown className="w-3.5 h-3.5" />
               {sortDir === 'desc' ? 'Newest first' : 'Oldest first'}
             </button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              disabled={sorted.length === 0}
+              className="gap-1.5 h-9"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Export CSV
+            </Button>
           </div>
         </div>
       </div>

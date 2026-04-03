@@ -106,7 +106,7 @@ export function FeeTracker({ student, payments, onPaymentAdded }: FeeTrackerProp
     <div className="space-y-4">
       {/* Stat cards */}
       <div className="grid grid-cols-3 gap-4">
-        <StatCard label="Total Fee" value={student.total_fee ? formatCurrency(student.total_fee) : 'Not set'} color="blue" />
+        <StatCard label="Discussed Amount" value={student.total_fee ? formatCurrency(student.total_fee) : 'Not set'} color="blue" />
         <StatCard label="Amount Paid" value={formatCurrency(student.amount_paid ?? 0)} color="green" />
         <StatCard label="Pending Balance" value={formatCurrency(Math.max(0, pending))} color={pending > 0 ? 'red' : 'default'} />
       </div>

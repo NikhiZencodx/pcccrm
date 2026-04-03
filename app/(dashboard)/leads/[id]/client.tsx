@@ -151,7 +151,7 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
             <CardHeader className="pb-3"><CardTitle className="text-base">Payment Summary</CardTitle></CardHeader>
             <CardContent>
               <div className="grid grid-cols-3 gap-4 text-sm mb-4">
-                <div><p className="text-gray-500">Total Fee</p><p className="font-bold text-lg">{lead.total_fee ? formatCurrency(lead.total_fee) : '-'}</p></div>
+                <div><p className="text-gray-500">Discussed Amount</p><p className="font-bold text-lg">{lead.total_fee ? formatCurrency(lead.total_fee) : '-'}</p></div>
                 <div><p className="text-gray-500">Paid</p><p className="font-bold text-lg text-green-700">{formatCurrency(lead.amount_paid ?? 0)}</p></div>
                 <div><p className="text-gray-500">Pending</p><p className="font-bold text-lg text-red-600">{lead.total_fee ? formatCurrency(Math.max(0, lead.total_fee - (lead.amount_paid ?? 0))) : '-'}</p></div>
               </div>
@@ -187,7 +187,7 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
 
       {/* Edit dialog */}
       <Dialog open={showEdit} onOpenChange={setShowEdit}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit Lead</DialogTitle></DialogHeader>
           <LeadForm lead={lead} onSuccess={handleEditSuccess} onCancel={() => setShowEdit(false)} />
         </DialogContent>
