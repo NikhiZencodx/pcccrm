@@ -121,6 +121,7 @@ export function BackendListClient() {
 
       if (search) query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%`)
       if (statusFilter) query = query.eq('status', statusFilter)
+      else query = query.neq('status', 'dropped')
       if (courseFilter) query = query.eq('course_id', courseFilter)
       if (sessionFilter) query = query.eq('session_id', sessionFilter)
       if (counsellorFilter) query = query.eq('assigned_counsellor', counsellorFilter)
