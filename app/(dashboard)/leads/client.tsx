@@ -126,11 +126,9 @@ export function LeadsClient() {
           <h1 className="text-xl font-bold text-gray-900">Leads</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage and track all your leads</p>
         </div>
-        {!['lead', 'telecaller'].includes(currentProfile?.role ?? '') && (
-          <Button onClick={() => setShowForm(true)} className="gap-1.5">
-            <Plus className="w-4 h-4" /> Add Lead
-          </Button>
-        )}
+        <Button onClick={() => setShowForm(true)} className="gap-1.5">
+          <Plus className="w-4 h-4" /> Add Lead
+        </Button>
       </div>
 
       {/* Stats */}
