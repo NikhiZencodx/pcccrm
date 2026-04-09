@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
         // Fetch employee structured salary and cycle preference
         const { data: emp, error: empErr } = await supabase
             .from('employees')
-            .select('basic_salary, hra, allowances, pf_deduction, tds_deduction, other_deductions, salary_cycle_start_day')
+            .select('basic_salary, hra, allowances, pf_deduction, tds_deduction, other_deductions, salary_cycle_start_day, profile_id')
             .eq('id', employee_id)
             .single() as { data: any, error: any }
 
@@ -51,10 +51,20 @@ export async function POST(req: NextRequest) {
         const absentCount = ((attendance as any[]) || []).filter(a => a.status === 'absent' || a.status === 'leave').length
         const leaveDeduction = Math.round((emp.basic_salary / 26) * absentCount)
 
+        // Fetch incentives for this range
+        const { data: studentIncentives } = await supabase
+            .from('students')
+            .select('incentive_amount')
+            .eq('assigned_counsellor', emp.profile_id)
+            .gte('enrollment_date', startDate.toISOString().split('T')[0])
+            .lte('enrollment_date', endDate.toISOString().split('T')[0])
+
+        const calculatedIncentive = (studentIncentives || []).reduce((acc, s) => acc + (Number(s.incentive_amount) || 0), 0)
+
         const basic = emp.basic_salary || 0
         const hra = emp.hra || 0
         const allow = emp.allowances || 0
-        const inc = incentive || 0
+        const inc = calculatedIncentive || incentive || 0
         const pf = emp.pf_deduction || 0
         const tds = emp.tds_deduction || 0
         const od = emp.other_deductions || 0

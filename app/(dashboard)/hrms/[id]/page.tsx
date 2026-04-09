@@ -33,13 +33,14 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
   const currentYear = getYear(now)
   const monthStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}`
 
-  const empRes = await supabase.from('employees').select('id, employee_code, department, designation, joining_date, basic_salary, hra, allowances, pf_deduction, tds_deduction, bank_account, bank_ifsc, is_active, profile_id').eq('id', id).single()
+  const empRes = await supabase.from('employees').select('id, employee_code, department, designation, joining_date, basic_salary, hra, allowances, pf_deduction, tds_deduction, bank_account, bank_ifsc, is_active, profile_id, salary_cycle_start_day').eq('id', id).single()
 
   const employee = empRes.data as {
     id: string; employee_code: string; department: string | null; designation: string | null;
     joining_date: string | null; basic_salary: number; hra: number; allowances: number;
     pf_deduction: number; tds_deduction: number; bank_account: string | null;
     bank_ifsc: string | null; is_active: boolean; profile_id: string;
+    salary_cycle_start_day: number | null;
   } | null
 
   if (!employee) notFound()
@@ -81,6 +82,27 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
   })) as PayrollRow[]
 
   const assignedStudents = (studentsRes.data as any[]) ?? []
+  
+  // Calculate current cycle incentives
+  const startDay = employee.salary_cycle_start_day || 1
+  let cycleStart: Date;
+  let cycleEnd: Date;
+  if (startDay === 1) {
+    cycleStart = new Date(currentYear, currentMonth - 1, 1)
+    cycleEnd = new Date(currentYear, currentMonth, 0)
+  } else {
+    cycleStart = new Date(currentYear, currentMonth - 2, startDay)
+    cycleEnd = new Date(currentYear, currentMonth - 1, startDay - 1)
+  }
+
+  const currentCycleIncentives = assignedStudents
+    .filter(s => {
+      if (!s.enrollment_date) return false
+      const d = new Date(s.enrollment_date)
+      return d >= cycleStart && d <= cycleEnd
+    })
+    .reduce((acc, s) => acc + (s.incentive_amount || 0), 0)
+
   const totalIncentives = assignedStudents.reduce((acc, s) => acc + (s.incentive_amount || 0), 0)
 
   return (
@@ -140,17 +162,39 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
         </TabsContent>
 
         <TabsContent value="payroll" className="space-y-4 pt-4">
-          <PayrollTable data={payrollRows} isAdmin={['admin', 'backend'].includes(currentProfile.role)} employeeId={employee.id} totalIncentives={totalIncentives} employeeName={profile?.full_name || 'Employee'} />
+          <PayrollTable 
+            data={payrollRows} 
+            isAdmin={['admin', 'backend'].includes(currentProfile.role)} 
+            employeeId={employee.id} 
+            totalIncentives={currentCycleIncentives} 
+            employeeName={profile?.full_name || 'Employee'} 
+            employeeCode={employee.employee_code || undefined}
+            designation={employee.designation || undefined}
+            department={employee.department || undefined}
+          />
         </TabsContent>
 
         <TabsContent value="incentives" className="pt-4 space-y-4">
-          <div className="rounded-lg border p-4 bg-purple-50/50 flex justify-between items-center">
-            <div>
-              <h3 className="font-semibold text-purple-900">Total Valid Incentives</h3>
-              <p className="text-sm text-purple-700">From successful student enrollments</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-lg border p-4 bg-purple-50/50 flex justify-between items-center transition-all hover:shadow-sm">
+              <div>
+                <h3 className="font-semibold text-purple-900">Current Cycle Incentive</h3>
+                <p className="text-xs text-purple-700">
+                  {format(cycleStart, 'dd MMM')} to {format(cycleEnd, 'dd MMM yyyy')}
+                </p>
+              </div>
+              <div className="text-2xl font-bold text-purple-700">
+                {fmt(currentCycleIncentives)}
+              </div>
             </div>
-            <div className="text-2xl font-bold text-purple-700">
-              {fmt(totalIncentives)}
+            <div className="rounded-lg border p-4 bg-gray-50/50 flex justify-between items-center">
+              <div>
+                <h3 className="font-semibold text-gray-900">Total Career Incentives</h3>
+                <p className="text-xs text-gray-700">Lifetime verified earnings</p>
+              </div>
+              <div className="text-xl font-bold text-gray-700">
+                {fmt(totalIncentives)}
+              </div>
             </div>
           </div>
 

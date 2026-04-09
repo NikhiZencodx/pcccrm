@@ -39,13 +39,25 @@ interface PayrollTableProps {
   isAdmin: boolean
   employeeId?: string
   employeeName?: string
+  employeeCode?: string
+  designation?: string
+  department?: string
   totalIncentives?: number
 }
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n)
 
-export default function PayrollTable({ data: initialData, isAdmin, employeeId, employeeName, totalIncentives }: PayrollTableProps) {
+export default function PayrollTable({ 
+  data: initialData, 
+  isAdmin, 
+  employeeId, 
+  employeeName, 
+  employeeCode,
+  designation,
+  department,
+  totalIncentives 
+}: PayrollTableProps) {
   const [data, setData] = useState(initialData)
   const [confirmBulk, setConfirmBulk] = useState<'process' | 'paid' | null>(null)
   const [showGenerate, setShowGenerate] = useState(false)
@@ -55,28 +67,35 @@ export default function PayrollTable({ data: initialData, isAdmin, employeeId, e
   const [isPending, startTransition] = useTransition()
   const supabase = createClient()
 
-  const updateIncentive = (id: string, value: number) => {
+  const updatePayrollField = (id: string, field: 'hra' | 'allowances' | 'incentive', value: number) => {
     setData((prev) =>
       prev.map((r) => {
         if (r.id !== id) return r
-        const gross = r.basic + r.hra + r.allowances + value
-        const net = gross - r.pf - r.tds - r.other_deductions
-        return { ...r, incentive: value, gross, net }
+        const updatedRow = { ...r, [field]: value }
+        const gross = updatedRow.basic + updatedRow.hra + updatedRow.allowances + updatedRow.incentive
+        const net = gross - updatedRow.pf - updatedRow.tds - updatedRow.other_deductions - updatedRow.leave_deduction
+        return { ...updatedRow, gross, net }
       })
     )
   }
 
-  const saveIncentive = (row: PayrollRow) => {
+  const savePayrollRow = (row: PayrollRow) => {
     startTransition(async () => {
       try {
         const { error } = await supabase
           .from('payroll')
-          .update({ incentive: row.incentive, gross: row.gross, net: row.net } as never)
+          .update({ 
+            hra: row.hra, 
+            allowances: row.allowances, 
+            incentive: row.incentive, 
+            gross: row.gross, 
+            net: row.net 
+          } as never)
           .eq('id', row.id)
         if (error) throw error
-        toast.success('Incentive saved')
+        toast.success('Payroll updated')
       } catch {
-        toast.error('Failed to save incentive')
+        toast.error('Failed to update payroll')
       }
     })
   }
@@ -166,7 +185,13 @@ export default function PayrollTable({ data: initialData, isAdmin, employeeId, e
           throw new Error(err.error || 'Failed to generate payroll')
         }
         const { payroll } = await res.json()
-        setData((prev) => [{ ...payroll, employee_name: employeeName }, ...prev])
+        setData((prev) => [{ 
+          ...payroll, 
+          employee_name: employeeName,
+          employee_code: employeeCode,
+          designation: designation,
+          department: department
+        }, ...prev])
         toast.success(`Payroll generated for ${format(new Date(year, month - 1), 'MMM yyyy')}`)
         setShowGenerate(false)
       } catch (err: any) {
@@ -223,17 +248,43 @@ export default function PayrollTable({ data: initialData, isAdmin, employeeId, e
               <tr key={row.id} className="border-b hover:bg-muted/30">
                 <td className="px-3 py-2 font-medium">{row.employee_name}</td>
                 <td className="px-3 py-2 text-right text-xs">{fmt(row.basic)}</td>
-                <td className="px-3 py-2 text-right text-xs">{fmt(row.hra)}</td>
-                <td className="px-3 py-2 text-right text-xs">{fmt(row.allowances)}</td>
                 <td className="px-3 py-2 text-right">
                   {isAdmin && row.status === 'draft' ? (
                     <Input
                       type="number"
                       min="0"
-                      className="h-7 w-24 text-right text-xs"
+                      className="h-7 w-20 text-right text-xs"
+                      value={row.hra}
+                      onChange={(e) => updatePayrollField(row.id, 'hra', Number(e.target.value))}
+                      onBlur={() => savePayrollRow(row)}
+                    />
+                  ) : (
+                    <span className="text-xs">{fmt(row.hra)}</span>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-right">
+                  {isAdmin && row.status === 'draft' ? (
+                    <Input
+                      type="number"
+                      min="0"
+                      className="h-7 w-20 text-right text-xs"
+                      value={row.allowances}
+                      onChange={(e) => updatePayrollField(row.id, 'allowances', Number(e.target.value))}
+                      onBlur={() => savePayrollRow(row)}
+                    />
+                  ) : (
+                    <span className="text-xs">{fmt(row.allowances)}</span>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-right">
+                  {isAdmin && row.status === 'draft' ? (
+                    <Input
+                      type="number"
+                      min="0"
+                      className="h-7 w-20 text-right text-xs"
                       value={row.incentive}
-                      onChange={(e) => updateIncentive(row.id, Number(e.target.value))}
-                      onBlur={() => saveIncentive(row)}
+                      onChange={(e) => updatePayrollField(row.id, 'incentive', Number(e.target.value))}
+                      onBlur={() => savePayrollRow(row)}
                     />
                   ) : (
                     <span className="text-xs">{fmt(row.incentive)}</span>

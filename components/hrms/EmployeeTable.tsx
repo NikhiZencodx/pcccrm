@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { format } from 'date-fns'
 import { Edit, Plus, Search } from 'lucide-react'
 import { useForm } from 'react-hook-form'
@@ -46,10 +46,24 @@ export default function EmployeeTable({ data: initialData }: EmployeeTableProps)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
 
-  const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<EmployeeFormData>({
+  const { register, handleSubmit, setValue, reset, watch, formState: { errors } } = useForm<EmployeeFormData>({
     resolver: zodResolver(employeeSchema),
     defaultValues: { role: 'lead', hra: 0, allowances: 0, pf_deduction: 0, tds_deduction: 0, salary_cycle_start_day: 1 },
   })
+
+  // Auto-sync cycle start day with joining date
+  const watchedJoiningDate = watch('joining_date')
+  const [lastSyncedDate, setLastSyncedDate] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (watchedJoiningDate && watchedJoiningDate !== lastSyncedDate) {
+      const day = new Date(watchedJoiningDate).getDate()
+      if (!isNaN(day)) {
+        setValue('salary_cycle_start_day', day)
+        setLastSyncedDate(watchedJoiningDate)
+      }
+    }
+  }, [watchedJoiningDate, lastSyncedDate, setValue])
 
   const filtered = data.filter((e) => {
     const matchSearch =
