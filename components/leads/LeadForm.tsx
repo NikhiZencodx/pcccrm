@@ -286,7 +286,7 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
         }
 
         const { error } = await supabase.from('leads').update({ ...payload, updated_at: new Date().toISOString() } as never).eq('id', lead.id)
-        if (error) throw error
+        if (error) throw new Error(error.message || error.details || error.hint || `DB error: ${error.code}`)
 
         const { data: { user } } = await supabase.auth.getUser()
 
@@ -325,7 +325,7 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
       } else {
         const { data: { user } } = await supabase.auth.getUser()
         const { data: newLead, error } = await supabase.from('leads').insert({ ...payload, created_by: user?.id } as never).select().single()
-        if (error) throw error
+        if (error) throw new Error(error.message || error.details || error.hint || `DB error: ${error.code}`)
 
         // Initial payment via LeadForm removed — use Finance section for payments.
 
@@ -351,9 +351,10 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
       }
       onSuccess()
     } catch (err: unknown) {
-      const msg = (err as { message?: string })?.message ?? 'Failed to save lead'
+      const e = err as any
+      const msg = e?.message || e?.error_description || e?.details || e?.hint || JSON.stringify(e) || 'Failed to save lead'
       toast.error(msg)
-      console.error('Lead save error:', err)
+      console.error('Lead save error:', e?.code, e?.message, e?.details, e?.hint)
     } finally {
       setLoading(false)
     }
