@@ -324,29 +324,8 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
         toast.success('Lead updated successfully')
       } else {
         const { data: { user } } = await supabase.auth.getUser()
-        const { data: newLead, error } = await supabase.from('leads').insert({ ...payload, created_by: user?.id } as never).select().single()
+        const { error } = await supabase.from('leads').insert({ ...payload, created_by: user?.id } as never)
         if (error) throw new Error(error.message || error.details || error.hint || `DB error: ${error.code}`)
-
-        // Initial payment via LeadForm removed — use Finance section for payments.
-
-        // Log creation activity
-        if (newLead) {
-          await supabase.from('lead_activities').insert({
-            lead_id: (newLead as any).id,
-            activity_type: 'created',
-            new_value: rest.status,
-            performed_by: user?.id
-          } as never)
-        }
-
-        if (data.notes && newLead) {
-          await supabase.from('lead_activities').insert({
-            lead_id: (newLead as any).id,
-            activity_type: 'note_added',
-            note: data.notes,
-            performed_by: user?.id
-          } as never)
-        }
         toast.success('Lead created successfully!')
       }
       onSuccess()
