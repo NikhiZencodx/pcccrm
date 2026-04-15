@@ -8,21 +8,21 @@ export const dynamic = 'force-dynamic'
 export default async function IncentivePage() {
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!session?.user) redirect('/login')
+  if (!user) redirect('/login')
 
   const { data: rawProfile } = await supabase
     .from('profiles')
     .select('role')
-    .eq('id', session.user.id)
+    .eq('id', user.id)
     .single() as { data: { role: string } | null }
 
-  if (!rawProfile?.role || !['lead', 'admin', 'backend'].includes(rawProfile.role)) redirect('/')
+  if (!rawProfile?.role || !['lead', 'admin', 'backend', 'telecaller'].includes(rawProfile.role)) redirect('/')
 
   // Find employee record for current user
   const { data: empRow } = await supabase
     .from('employees')
     .select('id')
-    .eq('profile_id', session.user.id)
+    .eq('profile_id', user.id)
     .single()
 
   const myEmployeeId = empRow ? (empRow as { id: string }).id : null
@@ -58,7 +58,7 @@ export default async function IncentivePage() {
     const { data: studs } = await supabase
       .from('students')
       .select('id, full_name, enrollment_date, incentive_amount, course:courses(name)')
-      .eq('assigned_counsellor', session.user.id)
+      .eq('assigned_counsellor', user.id)
       .gt('incentive_amount', 0)
       .order('enrollment_date', { ascending: false })
 
