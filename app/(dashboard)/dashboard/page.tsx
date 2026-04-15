@@ -5,8 +5,7 @@ import DashboardClient from '../dashboard-client'
 
 export default async function DashboardPage() {
   const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  const user = session?.user ?? null
+  const { data: { user } } = await supabase.auth.getUser()
 
   const { data: profile } = user ? await supabase
     .from('profiles')

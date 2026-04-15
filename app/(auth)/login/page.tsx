@@ -54,9 +54,14 @@ export default function LoginPage() {
           <div className="absolute inset-0 bg-gradient-to-br from-green-800 to-emerald-900 opacity-90 z-0"></div>
 
           <div className="relative z-10 flex flex-col h-full">
-            <div className="flex items-center gap-4 mb-12">
-              <Image src="/brand-logo.png" alt="Peace Career Consultancy Logo" width={64} height={64} className="w-16 h-16 object-contain rounded-full" priority />
-              <h1 className="text-3xl font-bold tracking-tight">Peace Career Consultancy</h1>
+            <div className="flex flex-col items-center gap-3 mb-12">
+              <div className="w-24 h-24 rounded-full bg-white/10 border-2 border-white/30 shadow-xl flex items-center justify-center p-1">
+                <Image src="/brand-logo.png" alt="Peace Career Consultancy Logo" width={88} height={88} className="w-full h-full object-contain rounded-full" priority />
+              </div>
+              <div className="text-center">
+                <h1 className="text-2xl font-bold tracking-tight leading-tight">Peace Career</h1>
+                <p className="text-green-300 text-sm font-semibold uppercase tracking-widest mt-0.5">Consultancy</p>
+              </div>
             </div>
 
             <div className="flex-grow flex flex-col justify-center">
@@ -92,9 +97,11 @@ export default function LoginPage() {
         {/* Right Side - Login Form */}
         <div className="w-full md:w-7/12 p-8 md:p-16 bg-white flex flex-col justify-center relative">
           {/* Mobile Header (Hidden on Desktop) */}
-          <div className="flex md:hidden items-center gap-3 mb-8 justify-center">
-            <Image src="/brand-logo.png" alt="Peace Career Consultancy Logo" width={48} height={48} className="w-12 h-12 object-contain rounded-full" />
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900">Peace Career Consultancy</h1>
+          <div className="flex md:hidden flex-col items-center gap-2 mb-8">
+            <div className="w-16 h-16 rounded-full bg-green-50 border-2 border-green-200 shadow-md flex items-center justify-center p-1">
+              <Image src="/brand-logo.png" alt="Peace Career Consultancy Logo" width={56} height={56} className="w-full h-full object-contain rounded-full" />
+            </div>
+            <h1 className="text-xl font-bold tracking-tight text-gray-900 text-center">Peace Career Consultancy</h1>
           </div>
 
           <div className="max-w-md w-full mx-auto space-y-8">

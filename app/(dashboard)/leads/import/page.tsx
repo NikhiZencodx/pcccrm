@@ -101,8 +101,8 @@ export default function LeadImportPage() {
 
     setImporting(true)
     setProgress(0)
-    const { data: { session } } = await supabase.auth.getSession()
-    const user = session?.user ?? null
+    const { data: { user } } = await supabase.auth.getUser()
+    
     const batchId = `import-${Date.now()}`
     let success = 0
     const failed: ImportRow[] = []

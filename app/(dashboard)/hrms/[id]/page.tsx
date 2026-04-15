@@ -16,8 +16,8 @@ const fmt = (n: number) =>
 export default async function EmployeeDetailPage({ params }: PageProps) {
   const { id } = await params
   const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  const user = session?.user ?? null
+  const { data: { user } } = await supabase.auth.getUser()
+  
   if (!user) redirect('/login')
 
   const { data: currentProfile } = await supabase

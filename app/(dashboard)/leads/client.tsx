@@ -58,6 +58,7 @@ export function LeadsClient() {
     setLoading(true)
     try {
       const isTelecaller = (currentProfile.role as string) === 'lead' || (currentProfile.role as string) === 'telecaller'
+      const isAdmin = (currentProfile.role as string) === 'admin'
 
       let query = supabase
         .from('leads')
@@ -69,48 +70,40 @@ export function LeadsClient() {
           sub_section:department_sub_sections(id, name, is_active, created_at, department_id),
           assigned_user:profiles!leads_assigned_to_fkey(id, email, full_name, role, is_active, created_at)
         `)
-        .order('updated_at', { ascending: false })
+        .order('created_at', { ascending: false })
 
-      // Telecallers only see their own assigned leads
-      if (isTelecaller) {
+      // Telecallers only see their own assigned leads, Admins see ALL
+      if (isTelecaller && !isAdmin) {
         query = query.eq('assigned_to', currentProfile.id)
       }
 
+      // Apply other filters only if they are set
       if (filters.status?.length) query = query.in('status', filters.status)
       if (filters.source?.length) query = query.in('source', filters.source)
-      if (!isTelecaller && filters.assigned_to?.length) query = query.in('assigned_to', filters.assigned_to)
+      if (!isAdmin && !isTelecaller && filters.assigned_to?.length) query = query.in('assigned_to', filters.assigned_to)
       if (filters.course_id?.length) query = query.in('course_id', filters.course_id)
       if (filters.city) query = query.ilike('city', `%${filters.city}%`)
-      if (filters.created_from) query = query.gte('created_at', filters.created_from)
-      if (filters.created_to) query = query.lte('created_at', filters.created_to + 'T23:59:59')
-      if (filters.followup_from) query = query.gte('next_followup_date', filters.followup_from)
-      if (filters.followup_to) query = query.lte('next_followup_date', filters.followup_to)
-      if (filters.payment_status === 'paid') query = query.gt('amount_paid', 0).filter('amount_paid', 'gte', 'total_fee')
-      if (filters.payment_status === 'unpaid') query = query.eq('amount_paid', 0)
-      if (filters.mode) query = query.eq('mode', filters.mode)
-      if (filters.import_batch_id) query = query.eq('import_batch_id', filters.import_batch_id)
 
       const { data, error } = await query
-      if (error) throw error
+      if (error) {
+        console.error('Database Error:', error)
+        throw error
+      }
+      
+      console.log('Fetched Leads:', data?.length)
       setLeads((data as Lead[]) ?? [])
 
       const today = format(new Date(), 'yyyy-MM-dd')
-      // Stats scoped to assigned leads for telecallers
-      const base = isTelecaller
-        ? supabase.from('leads').select('*', { count: 'exact', head: true }).eq('assigned_to', currentProfile.id)
-        : supabase.from('leads').select('*', { count: 'exact', head: true })
-
-      const [{ count: totalCount }, { count: newTodayCount }, { count: convertedCount }, { count: followupCount }] = await Promise.all([
-        (isTelecaller ? supabase.from('leads').select('*', { count: 'exact', head: true }).eq('assigned_to', currentProfile.id) : supabase.from('leads').select('*', { count: 'exact', head: true })),
-        (isTelecaller ? supabase.from('leads').select('*', { count: 'exact', head: true }).eq('assigned_to', currentProfile.id).gte('created_at', today) : supabase.from('leads').select('*', { count: 'exact', head: true }).gte('created_at', today)),
-        (isTelecaller ? supabase.from('leads').select('*', { count: 'exact', head: true }).eq('assigned_to', currentProfile.id).eq('status', 'converted') : supabase.from('leads').select('*', { count: 'exact', head: true }).eq('status', 'converted')),
-        (isTelecaller ? supabase.from('leads').select('*', { count: 'exact', head: true }).eq('assigned_to', currentProfile.id).eq('next_followup_date', today) : supabase.from('leads').select('*', { count: 'exact', head: true }).eq('next_followup_date', today)),
+      
+      // Fetch stats independently to ensure accuracy
+      const [{ count: totalCount }, { count: newTodayCount }] = await Promise.all([
+        supabase.from('leads').select('*', { count: 'exact', head: true }),
+        supabase.from('leads').select('*', { count: 'exact', head: true }).gte('created_at', today),
       ])
-      void base
-      setStats({ total: totalCount ?? 0, newToday: newTodayCount ?? 0, converted: convertedCount ?? 0, followupDue: followupCount ?? 0 })
+      
+      setStats(prev => ({ ...prev, total: totalCount ?? 0, newToday: newTodayCount ?? 0 }))
     } catch (err: unknown) {
-      const e = err as { message?: string }
-      console.error('Failed to fetch leads:', e?.message)
+      console.error('Fetch Leads Error:', err)
     } finally {
       setLoading(false)
     }

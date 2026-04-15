@@ -3,12 +3,12 @@ import { createServerClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { employeeSchema } from '@/lib/validations/employee.schema'
 import type { Database } from '@/types/database.types'
+import { redirect } from 'next/navigation'
 
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createServerClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    const user = session?.user ?? null
+    const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

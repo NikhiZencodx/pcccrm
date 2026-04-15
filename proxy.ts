@@ -3,6 +3,11 @@ import type { NextRequest } from 'next/server'
 import { createServerClient as _createServerClient } from '@supabase/ssr'
 
 export async function proxy(request: NextRequest) {
+  // Handle /admin 404 by redirecting to dashboard
+  if (request.nextUrl.pathname === '/admin') {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -30,8 +35,8 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  // Refresh session cookies if needed
-  await supabase.auth.getSession()
+  // Refresh session cookies and verify auth
+  await supabase.auth.getUser()
 
   return response
 }

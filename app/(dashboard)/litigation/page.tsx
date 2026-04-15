@@ -6,8 +6,8 @@ export const dynamic = 'force-dynamic'
 
 export default async function LitigationPage() {
   const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  const user = session?.user ?? null
+  const { data: { user } } = await supabase.auth.getUser()
+  
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase

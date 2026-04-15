@@ -9,8 +9,7 @@ interface Props {
 export default async function LeadDetailPage({ params }: Props) {
   const { id } = await params
   const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  const user = session?.user ?? null
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const { data: lead } = await supabase

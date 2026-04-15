@@ -4,8 +4,8 @@ import EmployeeTable from '@/components/hrms/EmployeeTable'
 
 export default async function HrmsPage() {
   const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  const user = session?.user ?? null
+  const { data: { user } } = await supabase.auth.getUser()
+  
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase

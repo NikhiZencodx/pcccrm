@@ -4,8 +4,8 @@ import ExpenseTable from '@/components/finance/ExpenseTable'
 
 export default async function ExpensesPage() {
   const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  const user = session?.user ?? null
+  const { data: { user } } = await supabase.auth.getUser()
+  
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase

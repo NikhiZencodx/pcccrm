@@ -5,22 +5,22 @@ import type { UserRole, Profile } from '@/types/app.types'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
   let userProfile: Profile = {
     id: '',
-    email: session?.user?.email ?? '',
+    email: user?.email ?? '',
     full_name: 'Admin',
     role: 'admin' as UserRole,
     is_active: true,
     created_at: new Date().toISOString(),
   }
 
-  if (session?.user) {
+  if (user) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single() as { data: { id: string; email: string; full_name: string; role: string; phone: string | null; is_active: boolean; created_at: string } | null }
 
     if (profile) {
