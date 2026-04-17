@@ -509,18 +509,18 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
       {/* ── Section 3: Department & University ── */}
       {(isVisible('department_id') || isVisible('sub_section_id')) && (
         <div className="bg-amber-50/50 rounded-xl p-4 border border-amber-100">
-          <SectionHeader icon={Building2} title="Department & University" color="border-amber-200" />
+          <SectionHeader icon={Building2} title="Department and country & University" color="border-amber-200" />
           <div className="grid grid-cols-2 gap-4">
             {isVisible('department_id') && (
-              <FieldWrapper label="Department">
+              <FieldWrapper label="Department and country">
                 <Select value={watch('department_id') || ''} onValueChange={(v) => { setValue('department_id', v || ''); setValue('sub_section_id', '' as any) }}>
                   <SelectTrigger className="bg-white border-amber-200">
-                    <SelectValue placeholder="Select department">
+                    <SelectValue placeholder="Select department and country">
                       {departments.find(d => d.id === watch('department_id'))?.name}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No department</SelectItem>
+                    <SelectItem value="">No department and country</SelectItem>
                     {departments.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -553,18 +553,18 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
       {/* ── Section 4: Course Preference ── */}
       {(isVisible('course_id') || isVisible('sub_course_id')) && (
         <div className="bg-emerald-50/50 rounded-xl p-4 border border-emerald-100">
-          <SectionHeader icon={BookOpen} title="Course Preference" color="border-emerald-200" />
+          <SectionHeader icon={BookOpen} title="University- and courses Preference" color="border-emerald-200" />
           <div className="grid grid-cols-2 gap-4">
             {isVisible('course_id') && (
-              <FieldWrapper label="Course">
+              <FieldWrapper label="University- and courses">
                 <Select value={watch('course_id') || ''} onValueChange={(v) => { setValue('course_id', v || ''); setValue('sub_course_id', '' as any) }}>
                   <SelectTrigger className="bg-white border-emerald-200">
-                    <SelectValue placeholder="Select course">
+                    <SelectValue placeholder="Select university- and courses">
                       {courses.find(c => c.id === watch('course_id'))?.name}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No course</SelectItem>
+                    <SelectItem value="">No university- and courses</SelectItem>
                     {courses.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -579,7 +579,7 @@ export function LeadForm({ lead, onSuccess, onCancel }: LeadFormProps) {
                   disabled={!selectedCourseId}
                 >
                   <SelectTrigger className="bg-white border-emerald-200 disabled:opacity-50">
-                    <SelectValue placeholder={selectedCourseId ? 'Select standard' : 'Select course first'}>
+                    <SelectValue placeholder={selectedCourseId ? 'Select standard' : 'Select university- and courses first'}>
                       {subCourses.find(s => s.id === watch('sub_course_id'))?.name}
                     </SelectValue>
                   </SelectTrigger>
